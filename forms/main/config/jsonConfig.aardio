@@ -8,7 +8,7 @@ btnUpdate={cls="plus";text="更新服务器配置";left=699;top=604;right=868;bo
 btnUpdateNaiveCore={cls="plus";text="下载 / 更新 NaÏveProxy Core";left=448;top=7;right=709;bottom=35;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-17;name='FontAwesome');padding={left=18}};iconText='\uF1A0';notify=1;textPadding={left=50};z=17};
 btnUpdateRules={cls="plus";text="下载 / 更新 路由规则";left=227;top=39;right=425;bottom=67;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=18}};iconText='\uF041';notify=1;textPadding={left=50};z=15};
 btnUpdateSsrCore={cls="plus";text="下载 / 更新 SSR Core";left=16;top=39;right=214;bottom=67;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-17;name='FontAwesome');padding={left=18}};iconText='\uF1D8';notify=1;textPadding={left=50};z=16};
-btnUpdateV2RayCore={cls="plus";text="下载 / 更新 V2Ray Core";left=16;top=5;right=223;bottom=33;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=18}};iconText='\uF27D';notify=1;textPadding={left=50};z=13};
+btnUpdateV2RayCore={cls="plus";text="下载 / 更新 Core(默认Xray)";left=16;top=5;right=223;bottom=33;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=18}};iconText='\uF27D';notify=1;textPadding={left=50};z=13};
 btnUpdateXrayCore={cls="plus";text="下载 / 更新 Xray Core";left=227;top=5;right=425;bottom=33;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=18}};iconText='\uF0E7';notify=1;textPadding={left=50};z=14};
 editCoreConfig={cls="edit";left=9;top=72;right=930;bottom=594;db=1;dl=1;dr=1;dt=1;edge=1;hide=1;hscroll=1;multiline=1;vscroll=1;z=7};
 editOutbounds={cls="edit";left=9;top=29;right=930;bottom=594;db=1;dl=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=8};
@@ -390,8 +390,8 @@ winform.editOutbounds.enablePopMenu(function(){
 					config.proxy.outbounds,true,false,true
 				)
 				
-				string.save("/v2ray-core/winXray-default-servers.json",str );
-				winform.msgOk("已存为默认服务器列表 /v2ray-core/winXray-default-servers.json",1000)
+				string.save("/xray-core/winXray-default-servers.json",str );
+				winform.msgOk("已存为默认服务器列表 /xray-core/winXray-default-servers.json",1000)
 			} 
 		}); 
 				
@@ -486,6 +486,26 @@ winform.editOutbounds.enablePopMenu(function(){
 				{ "流控:flow";
 					function(id){
 						winform.editOutbounds.selText = '"flow":"xtls-rprx-direct",'
+					} 
+				};
+				{ "REALITY Public Key:publicKey";
+					function(id){
+						winform.editOutbounds.selText = '"publicKey":"",'
+					} 
+				};
+				{ "REALITY Short ID:shortId";
+					function(id){
+						winform.editOutbounds.selText = '"shortId":"",'
+					} 
+				};
+				{ "REALITY Fingerprint:fingerprint";
+					function(id){
+						winform.editOutbounds.selText = '"fingerprint":"chrome",'
+					} 
+				};
+				{ "REALITY SpiderX:spiderX";
+					function(id){
+						winform.editOutbounds.selText = '"spiderX":"",'
 					} 
 				};
 				{ "多路复用最大连接:concurrency";
@@ -625,6 +645,10 @@ var editOutboundsTip = {
 	security = {"加密方式";"可省略,vmess协议默认为auto,vless协议默认为none"};
 	sni = {"TLS服务器名";"TLS客户端请求中的服务器名字段,如果不指定则默认取host或address字段值。"}; 
 	flow = {"流控";"目前仅用于选择 XTLS 的算法,省略时默认值为xtls-rprx-direct"}; 
+	publicKey = {"REALITY Public Key";"VLESS + REALITY server public key (pbk)"}; 
+	shortId = {"REALITY Short ID";"VLESS + REALITY shortId (sid)"}; 
+	fingerprint = {"REALITY Fingerprint";"VLESS + REALITY fingerprint (fp), e.g. chrome"}; 
+	spiderX = {"REALITY SpiderX";"VLESS + REALITY spiderX path (spx)"}; 
 	obfs = {"混淆插件";"可选值：plain,http_simple,http_post,tls1.2_ticket_auth ..."}; 
 	obfsParam = {"混淆参数";"SSR 里的 obfs_param"}; 
 	networkParam = {"SSR网络协议参数";"SSR 里的 protocol_param"}; 
@@ -684,11 +708,11 @@ winform.btnUpdateV2RayCore.oncommand = function(id,event){
 	if( versionTag ){
 		publish("uiCommand.restartV2RayCore");
 		winform.btnUpdateV2RayCore.disabledText = null;
-		winform.msgOk("已下载最新 V2Ray Core 版本：" + versionTag + '\nV2Ray 内核已切换为： V2Ray Core',1500)
+		winform.msgOk("已下载最新 Xray Core 版本：" + versionTag + '\n代理内核已切换为：Xray Core',1500)
 	}
 	else {
 		winform.btnUpdateV2RayCore.disabledText = null;
-		winform.msgErr("V2Ray Core 下载失败！");
+		winform.msgErr("Xray Core 下载失败！");
 	} 
 	
 	winform.btnUpdateXrayCore.disabled = false;
@@ -705,7 +729,7 @@ winform.btnUpdateXrayCore.oncommand = function(id,event){
 	if( versionTag ){
 		publish("uiCommand.restartV2RayCore");
 		winform.btnUpdateXrayCore.disabledText = null;
-		winform.msgOk("已下载最新 XRay Core 版本：" + versionTag+ '\nV2Ray 内核已切换为：XRay Core',1500)
+		winform.msgOk("已下载最新 Xray Core 版本：" + versionTag+ '\n代理内核已切换为：Xray Core',1500)
 	}
 	else {
 		winform.btnUpdateXrayCore.disabledText = null;

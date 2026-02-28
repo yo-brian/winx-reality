@@ -57,7 +57,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： V2Ray Core';
+		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
 		winform.editId.setCueBannerText("请输入 GUID");
 	}
 	elseif(sel=="shadowsocks"){
@@ -71,7 +71,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： V2Ray Core';
+		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
 		winform.editId.setCueBannerText("请输入密码");
 	}
 	elseif(sel=="ssr"){
@@ -92,7 +92,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 	}
 	elseif(sel=="vless"){
 		winform.cmbSecurity.items = {
-			"none";
+			"none";"reality";
 		}
 		winform.cmbSecurity.selIndex = 1;
 		winform.outboundConfig.security = "none";
@@ -125,7 +125,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";  
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： V2Ray Core';
+		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
 		winform.editId.setCueBannerText("请输入 用户名:密码");
 	}
 	elseif(sel=="http" || sel=="https"){
@@ -135,7 +135,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";  
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： V2Ray Core';
+		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
 		winform.editId.setCueBannerText("请输入 用户名:密码");
 	}
 	else {
@@ -145,12 +145,12 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： V2Ray Core';
+		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
 		winform.editId.setCueBannerText("请输入密码");
 	} 
 }
 
-winform.cmbProtocol.onListChange = function(){ 
+var onProtocolListChange = function(){ 
 	winform.cmbProtocol.onProtocolChange(); 
 
 	table.define(winform.outboundConfig);
@@ -158,20 +158,29 @@ winform.cmbProtocol.onListChange = function(){
 	winform.editOutbound.text = web.json.stringify(winform.outboundConfig,true,false);
 	winform.updateSharedLink();
 }
+winform.cmbProtocol.onListChange = onProtocolListChange;
 
-winform.cmbNetwork.onListChange = function(){ 
+var onNetworkListChange = function(){ 
 	var sel = winform.cmbNetwork.selText;
 	winform.outboundConfig.network = sel;
 	winform.editOutbound.text = web.json.stringify(winform.outboundConfig,true,false);	
 	winform.updateSharedLink();
 }
+winform.cmbNetwork.onListChange = onNetworkListChange;
 
-winform.cmbSecurity.onListChange = function(){ 
+var onSecurityListChange = function(){ 
 	var sel = winform.cmbSecurity.selText;
-	winform.outboundConfig.security = sel;
+	if(winform.outboundConfig.protocol=="vless" && sel=="reality"){
+		winform.outboundConfig.security = "reality";
+		winform.outboundConfig.tls = "reality";
+	}
+	else {
+		winform.outboundConfig.security = sel;
+	}
 	winform.editOutbound.text = web.json.stringify(winform.outboundConfig,true,false);	
 	winform.updateSharedLink();
 }
+winform.cmbSecurity.onListChange = onSecurityListChange;
 	
 winform.editId.editBox.onChange = function(){
     if( winform.outboundConfig.id == winform.editId.text ){
@@ -220,6 +229,10 @@ var editOutboundTip = {
 	security = {"加密方式";"可省略,vmess协议默认为auto,vless协议默认为none"};
 	sni = {"TLS服务器名";"TLS客户端请求中的服务器名字段,如果不指定则默认取host或address字段值。"}; 
 	flow = {"流控";"目前仅用于选择 XTLS 的算法,省略时默认值为xtls-rprx-direct"}; 
+	publicKey = {"REALITY Public Key";"VLESS + REALITY server public key (pbk)"}; 
+	shortId = {"REALITY Short ID";"VLESS + REALITY shortId (sid)"}; 
+	fingerprint = {"REALITY Fingerprint";"VLESS + REALITY fingerprint (fp), e.g. chrome"}; 
+	spiderX = {"REALITY SpiderX";"VLESS + REALITY spiderX path (spx)"}; 
 	obfs = {"混淆插件";"可选值：plain,http_simple,http_post,tls1.2_ticket_auth ..."}; 
 	obfsParam = {"混淆参数";"SSR 里的 obfs_param"}; 
 	networkParam = {"SSR网络协议参数";"SSR 里的 protocol_param"}; 
@@ -264,6 +277,26 @@ var insertFieldMenu = {
 	{ "流控:flow";
 		function(id){
 			winform.addOutboundField("flow","xtls-rprx-direct");
+		} 
+	};
+	{ "REALITY Public Key:publicKey";
+		function(id){
+			winform.addOutboundField("publicKey","");
+		} 
+	};
+	{ "REALITY Short ID:shortId";
+		function(id){
+			winform.addOutboundField("shortId","");
+		} 
+	};
+	{ "REALITY Fingerprint:fingerprint";
+		function(id){
+			winform.addOutboundField("fingerprint","chrome");
+		} 
+	};
+	{ "REALITY SpiderX:spiderX";
+		function(id){
+			winform.addOutboundField("spiderX","");
 		} 
 	};
 	{ "多路复用最大连接:concurrency";
@@ -378,10 +411,6 @@ var onEditChange = win.debounce(
 		winform.editAddress.editBox.onChange = editAddressChange;
 		winform.editPs.editBox.onChange = editPsChange;
 		
-		var cmbNetworkChange = winform.cmbNetwork.onListChange;
-		var cmbProtocolChange = winform.cmbProtocol.onListChange;
-		var cmbSecurityChange = winform.cmbSecurity.onListChange;
-		
 		winform.cmbNetwork.onListChange = null;
 		winform.cmbProtocol.onListChange = null;
 		winform.cmbSecurity.onListChange = null;
@@ -389,11 +418,16 @@ var onEditChange = win.debounce(
 		winform.cmbNetwork.selText = data.network;
 		winform.cmbProtocol.selText = data.protocol;
 		winform.cmbProtocol.onProtocolChange();
-		winform.cmbSecurity.selText = data.security;
+		if(data.protocol=="vless" && data.tls=="reality"){
+			winform.cmbSecurity.selText = "reality";
+		}
+		else {
+			winform.cmbSecurity.selText = data.security;
+		}
 		
-		winform.cmbNetwork.onListChange = cmbNetworkChange;
-		winform.cmbProtocol.onListChange = cmbProtocolChange;
-		winform.cmbSecurity.onListChange = cmbSecurityChange;
+		winform.cmbNetwork.onListChange = onNetworkListChange;
+		winform.cmbProtocol.onListChange = onProtocolListChange;
+		winform.cmbSecurity.onListChange = onSecurityListChange;
 		
 		winform.updateSharedLink();		
 	},500
@@ -401,6 +435,85 @@ var onEditChange = win.debounce(
 
 winform.editOutbound.onChange = function(){  
 	onEditChange();
+}
+
+var normalizeAndValidateRealityForUi = function(){
+	var cfg = winform.outboundConfig;
+	var isHexString = function(str){
+		if(!#(str:"")){
+			return false;
+		}
+		for(i=1;#str;1){
+			var ch = ..string.sub(str,i,i);
+			if(!..string.match(ch,"^[0-9a-fA-F]$")){
+				return false;
+			}
+		}
+		return true;
+	}
+	var isUuid = function(id){
+		if(#(id:"")!=36){
+			return false;
+		}
+		if(..string.sub(id,9,9)!="-" || ..string.sub(id,14,14)!="-" || ..string.sub(id,19,19)!="-" || ..string.sub(id,24,24)!="-"){
+			return false;
+		}
+		var hex = ..string.sub(id,1,8) + ..string.sub(id,10,13) + ..string.sub(id,15,18) + ..string.sub(id,20,23) + ..string.sub(id,25,36);
+		return (#hex==32) && isHexString(hex);
+	}
+	var id = ..string.trim((cfg.id:"")," \t\r\n{}");
+	if((#id==32) && isHexString(id)){
+		id = ..string.sub(id,1,8) + "-" + ..string.sub(id,9,12) + "-" + ..string.sub(id,13,16) + "-" + ..string.sub(id,17,20) + "-" + ..string.sub(id,21,32);
+	}
+	cfg.id = ..string.lower(id);
+	winform.editId.text = cfg.id;
+	
+	if(cfg.protocol!="vless"){
+		return true;
+	}
+	
+	var sec = winform.cmbSecurity.selText;
+	var isReality = (sec=="reality") || (cfg.tls=="reality") || (cfg.security=="reality");
+	if(!isReality){
+		return true;
+	}
+	
+	cfg.sni = ..string.trim((cfg.sni : cfg.servername : cfg.serverName : "")," \t\r\n");
+	cfg.publicKey = ..string.trim((cfg.publicKey : cfg.pbk : "")," \t\r\n");
+	cfg.shortId = ..string.trim((cfg.shortId : cfg.sid : "")," \t\r\n");
+	
+	if(!#cfg.id){
+		winform.editId.editBox.showErrorTip("配置错误","VLESS+REALITY 的 id(UUID) 不能为空");
+		return false;
+	}
+	if(!isUuid(cfg.id)){
+		winform.editId.editBox.showErrorTip("配置错误","VLESS+REALITY 的 id(UUID) 格式无效");
+		return false;
+	}
+	if(!#cfg.sni){
+		winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 缺少 sni(serverName)");
+		return false;
+	}
+	if(!#cfg.publicKey){
+		winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 缺少 publicKey(pbk)");
+		return false;
+	}
+	if(!..string.match(cfg.publicKey,"^[0-9A-Za-z_%-]+$")){
+		winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 的 publicKey(pbk) 格式无效");
+		return false;
+	}
+	if(#cfg.shortId){
+		if(!..string.match(cfg.shortId,"^[0-9a-fA-F]*$")){
+			winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 的 shortId(sid) 必须是十六进制");
+			return false;
+		}
+		if(#cfg.shortId>16){
+			winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 的 shortId(sid) 长度不能超过16");
+			return false;
+		}
+	}
+	
+	return true;
 }
 
 winform.btnSaveOutbound.oncommand = function(id,event){
@@ -418,7 +531,18 @@ winform.btnSaveOutbound.oncommand = function(id,event){
 			return winform.editId.editBox.showErrorTip("配置错误","当前代理协议密码不能为空")
 		}  
 	}
-	winform.outboundConfig.security = winform.cmbSecurity.selText;														   
+	var sec = winform.cmbSecurity.selText;
+	if(winform.outboundConfig.protocol=="vless" && sec=="reality"){
+		winform.outboundConfig.security = "reality";
+		winform.outboundConfig.tls = "reality";
+	}
+	else {
+		winform.outboundConfig.security = sec;
+	}
+	
+	if(!normalizeAndValidateRealityForUi()){
+		return;
+	}
 	
 	table.assign(winform.origOutboundConfig,winform.outboundConfig);
 	winform.endModal();
@@ -444,7 +568,18 @@ winform.btnAddOutbound.oncommand = function(id,event){
 			return winform.editId.editBox.showErrorTip("配置错误","当前代理协议密码不能为空")
 		}
 	}
-	winform.outboundConfig.security = winform.cmbSecurity.selText;
+	var sec = winform.cmbSecurity.selText;
+	if(winform.outboundConfig.protocol=="vless" && sec=="reality"){
+		winform.outboundConfig.security = "reality";
+		winform.outboundConfig.tls = "reality";
+	}
+	else {
+		winform.outboundConfig.security = sec;
+	}
+	
+	if(!normalizeAndValidateRealityForUi()){
+		return;
+	}
 	
 	table.push(config.proxy.outbounds,winform.outboundConfig); 
 	winform.endModal();
@@ -530,7 +665,7 @@ winform.btnCopySharedLink.oncommand = function(id,event){
 
 winform.setOutboundConfig = function(cfg){
     winform.cmbProtocol.selText = cfg.protocol;
-	winform.cmbProtocol.onListChange();
+	winform.cmbProtocol.onProtocolChange();
 	
 	winform.btnAddOutbound.skin(style.button);
 	winform.btnSaveOutbound.skin(style.primaryButton);
@@ -573,7 +708,7 @@ winform.btnUpdateCore.oncommand = function(id,event){
 		if( versionTag ){
 			publish("uiCommand.restartV2RayCore");
 			winform.btnUpdateCore.disabledText = null;
-			winform.msgOk("已下载最新 XRay Core 版本：" + versionTag+ '\nV2Ray 内核已切换为：XRay Core',1500)
+			winform.msgOk("已下载最新 Xray Core 版本：" + versionTag+ '\n代理内核已切换为：Xray Core',1500)
 		}
 		else {
 			winform.btnUpdateCore.disabledText = null;
@@ -599,11 +734,11 @@ winform.btnUpdateCore.oncommand = function(id,event){
 		if( versionTag ){
 			publish("uiCommand.restartV2RayCore");
 			winform.btnUpdateCore.disabledText = null;
-			winform.msgOk("已下载最新 V2Ray Core 版本：" + versionTag + '\nV2Ray 内核已切换为： V2Ray Core',1500)
+			winform.msgOk("已下载最新 Xray Core 版本：" + versionTag + '\n代理内核已切换为：Xray Core',1500)
 		}
 		else {
 			winform.btnUpdateCore.disabledText = null;
-			winform.msgErr("V2Ray Core 下载失败！");
+			winform.msgErr("Xray Core 下载失败！");
 		} 
 	}
 }

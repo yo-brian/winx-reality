@@ -233,19 +233,24 @@ mainForm.wndproc = {
 			
 			import v2ray.core;
 			var id = mainForm.popmenu.add('不使用代理',function(id){ 
-				sysProxy.switch("direct");  
+				sysProxy.switchMode("direct");  
 			});
 			mainForm.popmenu.check(id,config.proxy.mode=="direct",0/*_MF_BYCOMMAND*/);
 			
 			var id = mainForm.popmenu.add('使用全局代理',function(id){ 
-				sysProxy.switch("proxy");  
+				sysProxy.switchMode("proxy");  
 			});
 			mainForm.popmenu.check(id,config.proxy.mode=="proxy",0/*_MF_BYCOMMAND*/);
 			
 			var id = mainForm.popmenu.add('使用 PAC 自动代理',function(id){ 
-				sysProxy.switch("pac");  
+				sysProxy.switchMode("pac");  
 			});
 			mainForm.popmenu.check(id,config.proxy.mode=="pac",0/*_MF_BYCOMMAND*/);
+			
+			var id = mainForm.popmenu.add('使用 TUN 透明代理(实验性)',function(id){ 
+				sysProxy.switchMode("tun");  
+			});
+			mainForm.popmenu.check(id,config.proxy.mode=="tun",0/*_MF_BYCOMMAND*/);
 			
 			mainForm.popmenu.add();
 			
@@ -354,7 +359,8 @@ import win.image;
 var trayIcons = {
 	direct = win.image.loadIconFromFile("\forms\ico\app-direct.ico");
 	pac = win.image.loadIconFromFile("\forms\ico\app-pac.ico");
-	proxy = _HAPPICON
+	proxy = _HAPPICON;
+	tun = _HAPPICON;
 } 
 
 subscribe("sysProxy.modeChanged",function(active){

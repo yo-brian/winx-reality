@@ -6,8 +6,13 @@ import v2ray.pacServer;
 
 namespace sysProxy;
 
-switch = function(mode){  
+switchMode = function(mode){  
+	var prevMode = ..config.proxy.mode;
 	..config.proxy.mode = mode : "direct";
+	if(type(..config.proxy.tun)!="table"){
+		..config.proxy.tun = {};
+	}
+	..config.proxy.tun.enabled = (mode=="tun");
 	..config.proxy.save();
   
 	if(mode=="pac"){
@@ -29,32 +34,40 @@ switch = function(mode){
 			..v2ray.github.setProxy(true); 	
 		} 
 	}
+	elseif(mode=="tun"){
+		..inet.conn.setProxy();
+		..v2ray.github.setProxy(false);
+	}
 	else {
 		..inet.conn.setProxy();
 		..v2ray.github.setProxy(false);	
 	} 
 	..publish("sysProxy.modeChanged",mode)
+	
+	if(mode=="tun" || prevMode=="tun"){
+		..publish("uiCommand.restartV2RayCore");
+	}
 } 
 
 switchToGlobalMode = function(){
-	switch("proxy") 
+	switchMode("proxy") 
 }
 
 switchToPacMode = function(){  
-	switch("pac") 
+	switchMode("pac") 
 }
 
 switchToDirectMode  = function(){ 
-	switch("direct") 
+	switchMode("direct") 
 }
 
 switchHotkey  = function(){ 
     var mode = ..config.proxy.mode;
 	if( mode != "pac"){
-		switch("pac") 
+		switchMode("pac") 
 	}
 	else {
-		switch("proxy") 
+		switchMode("proxy") 
 	}
 	
 	return ..config.proxy.mode;
@@ -70,7 +83,7 @@ reset = function(proxy){
 	}
 	
 	..inet.conn.setProxy();
-	switch(..config.proxy.mode); 
+	switchMode(..config.proxy.mode); 
 } 
 
 ..subscribe("pacServer.restarted",function(pacPort){

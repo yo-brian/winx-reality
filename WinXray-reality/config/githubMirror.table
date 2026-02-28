@@ -1,0 +1,4 @@
+﻿{
+autoAdd=true;
+mirrors={[5]={url="https://gh.con.sh/"};[1]={url="https://cors.isteed.cc/"};[2]={url="https://hub.gitmirror.com/"};[3]={url="https://ghproxy.com/"};[4]={url="https://gh.ddlc.top/"};[6]={url="https://ghps.cc/"}}
+}

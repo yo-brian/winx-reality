@@ -25,30 +25,316 @@ isInboundPortChanged = function(){
 }
 
 var prcsV2Ray,v2RayStarting;
+var coreVersionTextCache = {};
+isHexString = function(str){
+	if(!#(str:"")){
+		return false;
+	}
+	for(i=1;#str;1){
+		var ch = ..string.sub(str,i,i);
+		if(!..string.match(ch,"^[0-9a-fA-F]$")){
+			return false;
+		}
+	}
+	return true;
+}
+isUuid = function(id){
+	if(#(id:"")!=36){
+		return false;
+	}
+	if(..string.sub(id,9,9)!="-" || ..string.sub(id,14,14)!="-" || ..string.sub(id,19,19)!="-" || ..string.sub(id,24,24)!="-"){
+		return false;
+	}
+	var hex = ..string.sub(id,1,8) + ..string.sub(id,10,13) + ..string.sub(id,15,18) + ..string.sub(id,20,23) + ..string.sub(id,25,36);
+	return (#hex==32) && isHexString(hex);
+}
+normalizeUuid = function(id){
+	id = ..string.trim((id:"")," \t\r\n{}");
+	if((#id==32) && isHexString(id)){
+		id = ..string.sub(id,1,8) + "-" + ..string.sub(id,9,12) + "-" + ..string.sub(id,13,16) + "-" + ..string.sub(id,17,20) + "-" + ..string.sub(id,21,32);
+	}
+	return ..string.lower(id);
+}
+checkRealityOutbound = function(outbound){
+	if(type(outbound)!="table"){
+		return true;
+	}
+	if(outbound.protocol!="vless"){
+		return true;
+	}
+	
+	var tls = outbound.tls;
+	if((!#tls) && outbound.security=="reality"){
+		tls = "reality";
+	}
+	if(tls!="reality"){
+		return true;
+	}
+	
+	var errs = {};
+	var warns = {};
+	var nodeName = outbound.ps : (outbound.address + ":" + tostring(outbound.port));
+	
+	if(!#(outbound.address:"")){
+		..table.push(errs,"address 不能为空");
+	}
+	
+	var port = tonumber(outbound.port);
+	if(!port || port<=0 || port>65535){
+		..table.push(errs,"port 无效(应为 1-65535)");
+	}
+	
+	var rawId = outbound.id:"";
+	var rawIdLen = #rawId;
+	var id = normalizeUuid(rawId);
+	outbound.id = id;
+	if(!#id){
+		..publish("uiCommand.print","REALITY自检[" + nodeName + "]: id原文=[" + rawId + "] len=" + rawIdLen + " -> 规范后=[" + id + "] len=" + #id);
+		..table.push(errs,"id(UUID) 不能为空");
+	}
+	elseif(!isUuid(id)){
+		..publish("uiCommand.print","REALITY自检[" + nodeName + "]: id原文=[" + rawId + "] len=" + rawIdLen + " -> 规范后=[" + id + "] len=" + #id);
+		..table.push(errs,"id(UUID) 格式无效");
+	}
+	
+	var sni = outbound.sni : outbound.servername : outbound.serverName;
+	if(!#(sni:"")){
+		..table.push(errs,"sni(serverName) 不能为空");
+	}
+	
+	var publicKey = outbound.publicKey : outbound.pbk;
+	if(!#(publicKey:"")){
+		..table.push(errs,"publicKey(pbk) 不能为空");
+	}
+	elseif(!..string.match(publicKey,"^[0-9A-Za-z_%-]+$")){
+		..table.push(errs,"publicKey(pbk) 格式无效");
+	}
+	
+	var shortId = outbound.shortId : outbound.sid;
+	if(#(shortId:"")){
+		if(!..string.match(shortId,"^[0-9a-fA-F]*$")){
+			..table.push(errs,"shortId(sid) 必须是十六进制字符串");
+		}
+		elseif(#shortId>16){
+			..table.push(errs,"shortId(sid) 长度不能超过16");
+		}
+	}
+	
+	var flow = outbound.flow:"";
+	if(#flow && flow!="xtls-rprx-vision"){
+		..table.push(errs,"flow 仅支持 xtls-rprx-vision(或留空)");
+	}
+	
+	var fingerprint = outbound.fingerprint : outbound.fp;
+	if(!#(fingerprint:"")){
+		..table.push(warns,"fingerprint 未设置，建议使用 chrome");
+	}
+	
+	var network = outbound.network:"tcp";
+	if(network!="tcp"){
+		..table.push(warns,"network 当前为 " + network + "，REALITY 常用 tcp");
+	}
+	
+	if(#errs){
+		var msg = "VLESS+REALITY 参数自检失败 [" + nodeName + "]：\r\n- " + ..string.join(errs,"\r\n- ");
+		if(#warns){
+			msg = msg + "\r\n\r\n建议检查：\r\n- " + ..string.join(warns,"\r\n- ");
+		}
+		return null,msg;
+	}
+	
+	if(#warns){
+		return true,"VLESS+REALITY 参数检查通过（有提醒）：\r\n- " + ..string.join(warns,"\r\n- ");
+	}
+	
+	return true;
+}
+buildRealityChecklist = function(outbound){
+	if(type(outbound)!="table"){
+		return;
+	}
+	if(outbound.protocol!="vless"){
+		return;
+	}
+	var tls = outbound.tls;
+	if((!#tls) && outbound.security=="reality"){
+		tls = "reality";
+	}
+	if(tls!="reality"){
+		return;
+	}
+	
+	var nodeName = outbound.ps : (outbound.address + ":" + tostring(outbound.port));
+	var lines = {};
+	..table.push(lines,"[REALITY 对照清单] " + nodeName);
+	..table.push(lines,"- 客户端 address: " + (outbound.address:""));
+	..table.push(lines,"- 客户端 port: " + tostring(outbound.port:""));
+	..table.push(lines,"- 客户端 id: " + (outbound.id:""));
+	..table.push(lines,"- 客户端 flow: " + (outbound.flow:"(空)"));
+	..table.push(lines,"- 客户端 sni(serverName): " + (outbound.sni:""));
+	..table.push(lines,"- 客户端 publicKey: " + ((outbound.publicKey:outbound.pbk):""));
+	..table.push(lines,"- 客户端 shortId: " + ((outbound.shortId:outbound.sid):"(空)"));
+	..table.push(lines,"- 客户端 fingerprint: " + ((outbound.fingerprint:outbound.fp):"(空)"));
+	..table.push(lines,"- 客户端 network: " + (outbound.network:"tcp"));
+	..table.push(lines,"- 服务端核对: 同端口/同公钥对/shortIds包含shortId/serverNames包含sni/无CDN或HTTPS反代");
+	
+	return ..string.join(lines,"\r\n");
+}
+getCoreVersionText = function(corePath){
+	if(coreVersionTextCache[corePath]!==null){
+		return coreVersionTextCache[corePath];
+	}
+	
+	var p,err = ..process.popen(corePath,"version");
+	if(!p){
+		coreVersionTextCache[corePath] = "";
+		return "";
+	}
+	
+	p.codepage = 65001;
+	var txt = p.read(-1):"";
+	p.close();
+	coreVersionTextCache[corePath] = txt;
+	return txt;
+}
 import process.job.limitKill;
 restart = function(editor,outbound){
 	
-    if(!outbound){ return null,"错误的出站代理服务器配置"  }
+    if(!outbound){ return null,"错误的出站代理服务器配置：节点为空"  }
+    if(type(outbound)!="table"){ return null,"错误的出站代理服务器配置：节点不是对象"  }
+    
+    import v2ray.outbounds;
+    outbound = ..v2ray.outbounds.validOutbound( ..table.clone(outbound) );
+    if(!outbound){
+    	return null,"错误的出站代理服务器配置：地址/端口/协议无效";
+    }
+    if(!#outbound.address){
+    	return null,"错误的出站代理服务器配置：缺少 address";
+    }
+    if(!tonumber(outbound.port)){
+    	return null,"错误的出站代理服务器配置：缺少 port";
+    }
+    if(!#outbound.protocol){
+    	return null,"错误的出站代理服务器配置：缺少 protocol";
+    }
+    
+    var realityOk,realityTip = checkRealityOutbound(outbound);
+    if(!realityOk){
+    	return null,realityTip;
+    }
+    if(realityTip){
+    	..publish("uiCommand.print",realityTip);
+    }
+    var realityChecklist = buildRealityChecklist(outbound);
+    if(realityChecklist){
+    	..publish("uiCommand.print",realityChecklist);
+    }
+    
     if(_WINXP){
-    	return null,"抱歉！V2Ray Core 不支持 Windows XP, 仅支持 Windows 7, Windows 10 以及更新操作系统。";  
+    	return null,"抱歉！Xray Core 不支持 Windows XP, 仅支持 Windows 7, Windows 10 以及更新操作系统。";  
     }
 
-	var inbounds = ..config.core.default[["inbounds"]];
-	if(! (..table.isArray(inbounds) && inbounds[1] ) ){
-		return null,"错误的入站SOCKS代理服务器配置" 
+	if(type(..config.core.default)!="table"){
+		..config.__resetDefaultCore();
 	}
-	if(! ( inbounds[2] ) ){
-		return null,"错误的入站HTTP代理服务器配置" 
+	
+	var inbounds = ..config.core.default[["inbounds"]];
+	if(type(inbounds)!="table"){
+		inbounds = {}
+		..config.core.default.inbounds = inbounds;
+	}
+	
+	var inboundsPatched;
+	// 入站配置损坏时自动补齐，避免直接启动失败
+	if(type(inbounds[1])!="table"){
+		inbounds[1] = {
+			listen="127.0.0.1";
+			port=0;
+			protocol="socks";
+			settings={
+				auth="noauth";
+				udp=true;
+			};
+			sniffing={
+				destOverride={
+					"http";
+					"tls"
+				};
+				enabled=true
+			};
+			tag="proxy";
+		}
+		inboundsPatched = true;
+	}
+	
+	if(type(inbounds[2])!="table"){
+		inbounds[2] = {
+			listen="127.0.0.1";
+			port=0;
+			protocol="http";
+			settings={};
+			sniffing={
+				destOverride={
+					"http";
+					"tls"
+				};
+				enabled=true
+			};
+			tag="http_proxy"
+		}
+		inboundsPatched = true;
+	}
+	
+	if(inboundsPatched){
+		..config.core.save();
 	}
 
-	if(v2RayStarting){ return null,"不能重复启动 V2Ray Core"  } 
+	if(v2RayStarting){ return null,"Xray Core 正在启动中，请稍后重试"  } 
 	v2RayStarting = true;
 	
 	var corePath = getPath(editor.hwnd);
 	if(!corePath){ 
 		v2RayStarting = false;
-		return false,"启动失败,未找到 v2ray.exe"; 
+		return false,"启动失败,未找到 xray.exe"; 
 	}  
+	
+	var tunMode = ..config.proxy.mode=="tun";
+	if(tunMode){
+		var coreVersionText = getCoreVersionText(corePath);
+		if(..string.find(coreVersionText,"Xray 24.")){
+			v2RayStarting = false;
+			return false,"当前 Xray Core 24.x 不支持 TUN 入站(tun)，请切换到 26.x 官方版或关闭 TUN 模式";
+		}
+		// Xray 1.x custom builds in this project are not compatible with current tun config schema.
+		if(..string.find(coreVersionText,"Xray 1.") && ..string.find(coreVersionText,"Custom")){
+			v2RayStarting = false;
+			return false,"当前 Xray Core (1.x Custom) 与 TUN 配置不兼容，请关闭 TUN 或切换到 26.x 官方版后再启用";
+		}
+	}
+	
+	if(tunMode){
+		var coreDir = ..io.splitpath(corePath).dir;
+		var wintunPath = ..io.joinpath(coreDir,"wintun.dll");
+		if(!..io.exist(wintunPath)){
+			var fallbackWintun = ..io.fullpath("/xray-core/wintun.dll");
+			if(..io.exist(fallbackWintun)){
+				import fsys;
+				fsys.copy(fallbackWintun,wintunPath);
+			}
+		}
+		if(!..io.exist(wintunPath)){
+			var fallbackWintun = ..io.fullpath("/v2ray-core/wintun.dll");
+			if(..io.exist(fallbackWintun)){
+				import fsys;
+				fsys.copy(fallbackWintun,wintunPath);
+			}
+		}
+		
+		if(!..io.exist(wintunPath)){
+			v2RayStarting = false;
+			return false,"TUN 模式缺少 wintun.dll，请放到核心目录后重试";
+		}
+	}
 	
 	// 先不要断开当前代理，使用当前代理下载会更快。
 	if( outbound.protocol == "ssr" ){ 
@@ -131,23 +417,23 @@ restart = function(editor,outbound){
 		
 		var err;
 		//prcsV2Ray,err = ..process.popen(corePath,"-c=config.json" );
-		prcsV2Ray,err = ..process.popen(corePath, corePath," run", "-c", "config.json" );
+		prcsV2Ray,err = ..process.popen(corePath,"run","-c","config.json");
 		..publish("uiCommand.print", corePath);																		   
 		if(!prcsV2Ray){
 			if( nexCore ){ nexCore.stop(); }
 	
-			..publish("uiCommand.print",err:"启动 V2Ray Core 时遇到未知错误!");
+			..publish("uiCommand.print",err:"启动 Xray Core 时遇到未知错误!");
 			
 			if(!..process().isWow64()){
 				if(..process.isExe(corePath)!="PE32"){
 					..io.remove(corePath);
 					if(!..io.exist(corePath)){
-						..publish("uiCommand.print","当前操作系统是32位，已删除无效的64位 V2Ray Core，正在下载32位 V2Ray Core");
+						..publish("uiCommand.print","当前操作系统是32位，已删除无效的64位 Xray Core，正在下载32位 Xray Core");
 						v2RayStarting = false;
 						return restart(editor,outbound)	
 					}
 					else {
-						..publish("uiCommand.print","当前操作系统是32位，但是找到的 V2Ray Core 是64位，请重新下载32位 V2Ray Core");
+						..publish("uiCommand.print","当前操作系统是32位，但是找到的 Xray Core 是64位，请重新下载32位 Xray Core");
 					} 
 				} 	
 			}
@@ -165,6 +451,9 @@ restart = function(editor,outbound){
 	}
 	
 	..publish("uiCommand.print","已启动代理服务器，SOCKS端口:" + socksProxyPort + " HTTP端口:" + httpProxPort) 
+	if(tunMode){
+		..publish("uiCommand.print","TUN 模式已启用（实验性）：请以管理员运行，并按需手动配置路由。");
+	}
 	..publish("v2RayCore.restarted",socksProxyPort,httpProxPort); 
 	v2RayStarting = false;
 	return true;
@@ -186,7 +475,7 @@ stop = function(){
 
 var getV2RayCoreUrl = function(){
 	var msgDlg = ..win.dlg.message(..mainForm); 
-	var form = msgDlg.create('正在获取 V2Ray Core 最新版本',,true)
+	var form = msgDlg.create('正在获取 Xray Core 最新版本',,true)
 	form.icon = '\uF1D8';
 	form.progress.startProgress(50); 
 	
@@ -211,76 +500,78 @@ var getV2RayCoreUrl = function(){
 } 
 
 getPath = function(hwnd){
-	var path = ..io.fullpath("/v2ray-core/v2ray.exe");
-	if(..io.exist(path)){
-		return path;
-	}
-		
-	var path = ..io.appData("/winXray/core/v2ray.exe");
+	var path = ..io.fullpath("/WinXray/xray/xray.exe");
 	if(..io.exist(path)){
 		return path;
 	}
 
 	var path = ..io.fullpath("/xray-core/xray.exe");
 	if(..io.exist(path)){
-		..io.rename("/xray-core/","/v2ray-core/") 
+		return path;
 	}
-
+	
 	var path = ..io.fullpath("/v2ray-core/xray.exe");
 	if(..io.exist(path)){
-		..io.rename("/v2ray-core/xray.exe","/v2ray-core/v2ray.exe")
-		return ..io.fullpath("/v2ray-core/v2ray.exe");
+		return path;
+	}
+	
+	var path = ..io.appData("/winXray/core/xray.exe");
+	if(..io.exist(path)){
+		return path;
 	}
 	
 	if(self.lastDownloadingCoreFailed){
 		return;
 	}
 	
-	..mainForm.disabled = true; 
-	var url,versionTag = getV2RayCoreUrl();
-	 
-	if(!url) {
-		..publish("uiCommand.print","请下载 V2Rary Core 到以下路径:");
-		..publish("uiCommand.print",path);
-		
-		..mainForm.disabled = false;
-		self.lastDownloadingCoreFailed = true;
-		return null;
-	}
-	
-	import zlib.httpFile;
-	if( ..zlib.httpFile.download(url,"正在下载 V2Ray Core"
-		,..io.appData("/winXray/download/")
-		,..io.appData("/winXray/core/"),,..mainForm.hwnd) ){
-			
+	import v2ray.core.xray;
+	var versionTag = ..v2ray.core.xray.updateCore();
+	if(versionTag){
 		self.lastDownloadingCoreFailed = null;
-		..mainForm.disabled = false;
-		return ..io.exist(path);
+		var path = ..io.fullpath("/WinXray/xray/xray.exe");
+		if(..io.exist(path)){
+			return path;
+		}
+		var path = ..io.fullpath("/xray-core/xray.exe");
+		if(..io.exist(path)){
+			return path;
+		}
+		var path = ..io.fullpath("/v2ray-core/xray.exe");
+		if(..io.exist(path)){
+			return path;
+		}
+		var path = ..io.appData("/winXray/core/xray.exe");
+		if(..io.exist(path)){
+			return path;
+		}
 	}
-	else {
-		..mainForm.disabled = false;
-		self.lastDownloadingCoreFailed = true;
-		
-		..publish("uiCommand.print","请到以下网址下载 V2Ray Core:");
-		..publish("uiCommand.print",url);
-		
-		..publish("uiCommand.print","下载后请解压到以下目录内:");
-		..publish("uiCommand.print",..io.appData("/winXray/core/"));
-		
-		//import process;
-		//process.execute(..io._exepath,"/github","runas");
-	}  
+	self.lastDownloadingCoreFailed = true;
 } 
 
 getCoreDir = function(hwnd){
-	var path = ..io.fullpath("/v2ray-core/v2ray.exe");
+	var path = ..io.fullpath("/WinXray/xray/xray.exe");
+	if(..io.exist(path)){
+		return ..io.fullpath("/WinXray/xray/");
+	}
+
+	var path = ..io.fullpath("/xray-core/xray.exe");
+	if(..io.exist(path)){
+		return ..io.fullpath("/xray-core/");
+	}
+	
+	var path = ..io.fullpath("/v2ray-core/xray.exe");
 	if(..io.exist(path)){
 		return ..io.fullpath("/v2ray-core/");
 	}
 		
-	var path = ..io.appData("/winXray/core/v2ray.exe");
+	var path = ..io.appData("/winXray/core/xray.exe");
 	if(..io.exist(path)){
-		return ..io.appData("/winXray/core/");;
+		return ..io.appData("/winXray/core/");
+	}
+	
+	var path = ..io.fullpath("/xray-core/");
+	if(..io.exist(path)){
+		return path;
 	}
 	
 	var path = ..io.fullpath("/v2ray-core/");
@@ -292,49 +583,13 @@ getCoreDir = function(hwnd){
 } 
 
 updateCore = function(){
-    ..mainForm.disabled = true; 
-    	
-	var coreDir = getCoreDir();
-	var url,versionTag = getV2RayCoreUrl();
-	if(!url){		
-		..mainForm.disabled = false;
-		self.lastDownloadingCoreFailed = true;
-		return null;
+	import v2ray.core.xray;
+	var versionTag = ..v2ray.core.xray.updateCore();
+	if(versionTag){
+		self.lastDownloadingCoreFailed = null;
+		return versionTag;
 	}
-	  
-	import fsys;
-	fsys.delete( ..io.appData("/winXray/temp/v2ray/") );
-	 
-	
-	import zlib.httpFile;
-	if( ..zlib.httpFile.download(url,"正在下载 V2Ray Core，版本：" + versionTag
-		,..io.appData("/winXray/download/")
-		,..io.appData("/winXray/temp/v2ray/"),,..mainForm.hwnd) ){
-			..mainForm.disabled = false;
-			
-			if(..io.exist(..io.appData("/winXray/temp/v2ray/v2ray.exe"))){
-				import sysProxy;
-				sysProxy.reset(false);
-
-				import process.file;
-				process.file.terminate(..io.joinpath(coreDir,"v2ray.exe")); 
-				process.file.terminate(..io.joinpath(coreDir,"v2ctl.exe")); 
-				
-				..io.createDir(coreDir); 
-				fsys.copy(..io.appData("/winXray/temp/v2ray/v2ray.exe"),..io.joinpath(coreDir,"v2ray.exe")); 
-				fsys.copy(..io.appData("/winXray/temp/v2ray/v2ctl.exe"),..io.joinpath(coreDir,"v2ctl.exe")); 
-				
-				self.lastDownloadingCoreFailed = null;
-				return versionTag;
-			} 
-			else {
-				self.lastDownloadingCoreFailed = true;
-			} 
-	}
-	else {
-		..mainForm.disabled = false;
-		self.lastDownloadingCoreFailed = true; 
-	} 	 
+	self.lastDownloadingCoreFailed = true;
 }
 
 /**intellisense(v2ray.core)

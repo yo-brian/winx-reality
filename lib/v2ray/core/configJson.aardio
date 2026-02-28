@@ -13,13 +13,68 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 	}
 	
 	var currentCore = ..table.clone(..config.core.default);
+	if(type(currentCore)!="table"){
+		currentCore = {};
+	}
+	
 	if(! ..table.isArray(currentCore.outbounds) ){
-		return null,"错误的出站代理服务器配置" 
+		currentCore.outbounds = {
+			{
+				tag="proxy"
+			};
+			{
+				protocol="freedom";
+				settings={};
+				tag="direct";
+			};
+			{
+				protocol="blackhole";
+				settings={
+					response={
+						type="http"
+					}
+				};
+				tag="block";
+			}
+		};
 	}
 	
 	var inboundsInCore = currentCore.inbounds;
 	if(! ..table.isArray(inboundsInCore) ){
-		return null,"错误的入站代理服务器配置" 
+		currentCore.inbounds = {
+			{
+				listen="127.0.0.1";
+				port=0;
+				protocol="socks";
+				settings={
+					auth="noauth";
+					udp=true;
+				};
+				sniffing={
+					destOverride={
+						"http";
+						"tls"
+					};
+					enabled=true
+				};
+				tag="proxy";
+			}; 
+			{
+				listen="127.0.0.1";
+				port=0;
+				protocol="http";
+				settings={};
+				sniffing={
+					destOverride={
+						"http";
+						"tls"
+					};
+					enabled=true
+				};
+				tag="http_proxy"
+			}
+		};
+		inboundsInCore = currentCore.inbounds;
 	}
 	
 	var proxyOutboundInCore;
@@ -30,7 +85,8 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 	}
 	
 	if( type(proxyOutboundInCore) !="table"  ){
-		return null,"未找到默认出站代理服务器配置节点" 
+		proxyOutboundInCore = {tag="proxy"};
+		..table.push(currentCore.outbounds,proxyOutboundInCore);
 	}
 	
 	var socksInbounds,httpInbounds;
@@ -44,13 +100,139 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 			httpInbounds.port = httpPort; 
 		} 
 	}
+	
+	// 规范化本地代理入站，避免旧配置残留导致端口缺失
+	if(type(socksInbounds)=="table"){
+		if(!tonumber(socksInbounds.port)){
+			socksInbounds.port = sockPort;
+		}
+		if(!#(socksInbounds.listen:"")){
+			socksInbounds.listen = "127.0.0.1";
+		}
+	}
+	if(type(httpInbounds)=="table"){
+		if(!tonumber(httpInbounds.port)){
+			httpInbounds.port = httpPort;
+		}
+		if(!#(httpInbounds.listen:"")){
+			httpInbounds.listen = "127.0.0.1";
+		}
+	}
 		
 	if( type(socksInbounds) !="table"  ){
-		return null,"未找到默认 SOCKS 入站代理服务器配置节点" 
+		socksInbounds = {
+			listen="127.0.0.1";
+			port=sockPort;
+			protocol="socks";
+			settings={
+				auth="noauth";
+				udp=true;
+			};
+			sniffing={
+				destOverride={
+					"http";
+					"tls"
+				};
+				enabled=true
+			};
+			tag="proxy";
+		};
+		..table.push(currentCore.inbounds,socksInbounds);
 	}
 	
 	if( type(httpInbounds) !="table"  ){
-		return null,"未找到默认 HTTP 入站代理服务器配置节点" 
+		httpInbounds = {
+			listen="127.0.0.1";
+			port=httpPort;
+			protocol="http";
+			settings={};
+			sniffing={
+				destOverride={
+					"http";
+					"tls"
+				};
+				enabled=true
+			};
+			tag="http_proxy"
+		};
+		..table.push(currentCore.inbounds,httpInbounds);
+	}
+
+	var proxyMode = ..config.proxy.mode;
+	var tunCfg = ..config.proxy.tun : {};
+	var tunEnabled = (proxyMode=="tun") || !!tunCfg.enabled;
+	var tunInbound;
+	for(i=#currentCore.inbounds;1;-1){
+		var ib = currentCore.inbounds[i];
+		if(type(ib)=="table" && ib.tag=="tun_proxy"){
+			if(tunEnabled && type(tunInbound)!="table"){
+				tunInbound = ib;
+			}
+			else {
+				..table.remove(currentCore.inbounds,i);
+			}
+		}
+	}
+	
+	if(tunEnabled){
+		if(type(tunInbound)!="table"){
+			tunInbound = {tag="tun_proxy"};
+			..table.push(currentCore.inbounds,tunInbound);
+		}
+		
+		var tunAddressV4 = tunCfg.ipv4 : "172.19.0.1/30";
+		var tunAddressV6 = tunCfg.ipv6 : "fdfe:dcba:9876::1/126";
+		tunInbound.protocol = "tun";
+		// TUN 入站不应包含 listen/port；旧配置残留会触发 InboundDetour 报错
+		tunInbound.listen = null;
+		tunInbound.port = null;
+		tunInbound.sniffing = null;
+		tunInbound.settings = {
+			name = tunCfg.name : "WinXray Tunnel";
+			mtu = tonumber(tunCfg.mtu) : 1500;
+			address = {
+				tunAddressV4;
+				tunAddressV6;
+			}
+		};
+	}
+	
+	var routing = currentCore.routing;
+	if(type(routing)!="table"){
+		routing = {};
+		currentCore.routing = routing;
+	}
+	if(! ..table.isArray(routing.rules) ){
+		routing.rules = ..table.array();
+	}
+	
+	for(i=#routing.rules;1;-1){
+		var rule = routing.rules[i];
+		if(type(rule)=="table" && rule.outboundTag=="proxy" && ..table.isArray(rule.inboundTag)){
+			for idx,tag in ..table.eachIndex(rule.inboundTag){
+				if(tag=="tun_proxy"){
+					..table.remove(routing.rules,i);
+					break;
+				}
+			}
+		}
+	}
+	
+	if(tunEnabled){
+		..table.push(routing.rules,{
+			type = "field";
+			inboundTag = {"tun_proxy"};
+			outboundTag = "proxy";
+		});
+	}
+	
+	// 再做一层兜底：所有 TUN 入站均清理 listen/port
+	for(i=1;#currentCore.inbounds;1){
+		var ib = currentCore.inbounds[i];
+		if(type(ib)=="table" && ib.protocol=="tun"){
+			ib.listen = null;
+			ib.port = null;
+		}
 	}
 	
 	if(#outbound.tls && !outbound.sni){
@@ -60,8 +242,30 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 	}
 	
 	if(outbound.protocol=="vless"){ 
+		if(outbound.security=="reality" && !#outbound.tls){
+			outbound.tls = "reality";
+		}
 		if(!outbound.tls && outbound.port==443) outbound.tls = "tls";
 		if(!outbound.tls) outbound.tls = "tls";
+		
+		if(outbound.tls=="reality"){
+			if(!#outbound.sni){
+				return null,"VLESS+REALITY 配置错误：缺少 sni(serverName)";
+			}
+			
+			var realityPublicKey = outbound.publicKey : outbound.pbk;
+			if(!#realityPublicKey){
+				return null,"VLESS+REALITY 配置错误：缺少 publicKey(pbk)";
+			}
+			
+			if(!#(outbound.fingerprint : outbound.fp)){
+				outbound.fingerprint = "chrome";
+			}
+			
+			if((outbound.spiderX===null) && (outbound.spx===null)){
+				outbound.spiderX = "";
+			}
+		}
 		
 		var mux = (outbound.concurrency !== null) ? {
 			concurrency=outbound.concurrency;
@@ -72,7 +276,7 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 		}; 
 			
 		var ob = {
-			mux = outbound.tls != "xtls" ? mux : null;
+			mux = (outbound.tls != "xtls" && outbound.tls != "reality") ? mux : null;
 			protocol="vless";
 			
 			settings={
@@ -84,7 +288,7 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 							{  
 								id=outbound.id;
 								flow=outbound.flow : (outbound.tls == "xtls" ? "xtls-rprx-direct" : null);
-								encryption=( (!#outbound.security) || outbound.security=="auto") ? "none" : outbound.security;  
+								encryption=( (!#outbound.security) || outbound.security=="auto" || outbound.security=="reality") ? "none" : outbound.security;  
 								level=outbound.level : 0;
 							}
 						}
@@ -94,7 +298,7 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 			streamSettings={
 				network=outbound.network : "tcp";
 				security=#outbound.tls ? outbound.tls : null;
-				tlsSettings = (#outbound.tls && outbound.tls != "xtls") ? {
+				tlsSettings = (#outbound.tls && outbound.tls != "xtls" && outbound.tls != "reality") ? {
 					allowInsecure = !!outbound.allowInsecure;
 					serverName = outbound.sni : outbound.address;
 					alpn = outbound.alpn;
@@ -105,6 +309,14 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 					serverName = outbound.sni : outbound.address;
 					alpn = outbound.alpn;
 					disableSessionResumption = outbound.disableSessionResumption;
+				} : null;
+				realitySettings = outbound.tls == "reality" ? {
+					show = !!outbound.show;
+					serverName = outbound.sni : outbound.address;
+					fingerprint = outbound.fingerprint : outbound.fp;
+					publicKey = outbound.publicKey : outbound.pbk;
+					shortId = outbound.shortId : outbound.sid;
+					spiderX = outbound.spiderX : outbound.spx;
 				} : null;
 			};
 			tag="proxy"
@@ -468,6 +680,8 @@ write  = function(jsonPath,outbound,sockPort,httpPort){
 		..table.assign(proxyOutboundInCore,ob); 
 	} 
 
+	..config.core.default = currentCore;
+	..config.core.save();
 	..string.save(jsonPath,..web.json.stringify(currentCore) );
 	return jsonPath;
 }

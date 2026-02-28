@@ -1,0 +1,14 @@
+﻿{
+testInterval=15;
+pacPort=1083;
+maxTestServers=100;
+subscribeUrls={[1]={ps="a.54ai.online";checked="启用";url="https://a.54ai.online/apiapi/v1/client/subscrib?token=3d2954a2d1b3fdc6ff4bbb71bf0ab224"};fields={[2]="checked";[1]="";[3]="ps";[4]="url"}};
+outbounds={[1]={flow="xtls-rprx-vision";path="";protocol="vless";encryption="none";id="241553db-786d-4e85-b670-af90c437d8b5";port=10013;sni="m.media-amazon.com";host="";subscribeUrl="https://a.54ai.online/apiapi/v1/client/subscrib?token=3d2954a2d1b3fdc6ff4bbb71bf0ab224";tls="reality";address="20.gptroom.net";streamSettings={realitySettings={publicKey="6PFmih6AMyx7th_vzrz1KmIv7xnHp12d5efP7a3fCgI";spiderX="";fingerprint="chrome";serverName="m.media-amazon.com";shortId="dd6381ce";show=false}};ps="美 外贸专线-20 直连 VL+RE";network="tcp";security="reality"};fields={[1]="protocol";[2]="address";[3]="port";[4]="security";[5]="network";[6]="ps"}};
+autoRefreshSubscription=true;
+useSocksPac=true;
+test=true;
+enableGitConfigGithub=true;
+mode="pac";
+hotkey={[1]=7;[2]=80};
+useHttpGlobal=true
+}

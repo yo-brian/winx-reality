@@ -147,6 +147,11 @@ downloadCore = function(){
  
  
 getPath = function(hwnd){
+	var path = ..io.fullpath("/xray-core/naive-core/naive.exe");
+	if(..io.exist(path)){
+		return path;
+	}
+		
 	var path = ..io.fullpath("/v2ray-core/naive-core/naive.exe");
 	if(..io.exist(path)){
 		return path;
@@ -165,6 +170,11 @@ getPath = function(hwnd){
 } 
 
 getCoreDir = function(hwnd){
+	var path = ..io.fullpath("/xray-core/naive-core/naive.exe");
+	if(..io.exist(path)){
+		return ..io.fullpath("/xray-core/naive-core/");
+	}
+		
 	var path = ..io.fullpath("/v2ray-core/naive-core/naive.exe");
 	if(..io.exist(path)){
 		return ..io.fullpath("/v2ray-core/naive-core/");
@@ -175,16 +185,26 @@ getCoreDir = function(hwnd){
 		return ..io.appData("/winXray/naive-core/");;;
 	}
 	
-	var path = ..io.fullpath("/v2ray-core/v2ray.exe");
+	var path = ..io.fullpath("/xray-core/xray.exe");
+	if(..io.exist(path)){
+		return ..io.fullpath("/xray-core/naive-core/");
+	}
+		
+	var path = ..io.fullpath("/v2ray-core/xray.exe");
 	if(..io.exist(path)){
 		return ..io.fullpath("/v2ray-core/naive-core/");
 	}
 		
-	var path = ..io.appData("/winXray/core/v2ray.exe");
+	var path = ..io.appData("/winXray/core/xray.exe");
 	if(..io.exist(path)){
 		return ..io.appData("/winXray/naive-core/");
 	}
 	
+	var path = ..io.fullpath("/xray-core/");
+	if(..io.exist(path)){
+		return ..io.fullpath("/xray-core/naive-core/");
+	}
+		
 	var path = ..io.fullpath("/v2ray-core/");
 	if(..io.exist(path)){
 		return ..io.fullpath("/v2ray-core/naive-core/");

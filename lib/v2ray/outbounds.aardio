@@ -86,18 +86,22 @@ exportSharedLinks = function(outbounds){
 			
 			var info = {};
 			if(outbound.network!="tcp") info.type = outbound.network ;
-			if(outbound.security!="none") info.encryption = outbound.security; 
+			if(outbound.security!="none" && outbound.security!="reality") info.encryption = outbound.security; 
 			if(outbound.tls) info.security = outbound.tls;
 			if(outbound.flow) info.flow = outbound.flow;
 			if(outbound.allowInsecure) info.allowInsecure = outbound.allowInsecure;
 			if(outbound.alpn) info.alpn = outbound.alpn;
 			if(outbound.disableSessionResumption) info.disableSessionResumption = outbound.disableSessionResumption;
 			if(outbound.sni){ info.sni = outbound.sni;}
+			if(outbound.publicKey) info.pbk = outbound.publicKey;
+			if(outbound.shortId) info.sid = outbound.shortId;
+			if(outbound.fingerprint) info.fp = outbound.fingerprint;
+			if(outbound.spiderX) info.spx = outbound.spiderX;
 			info.host = outbound.host;
 			info.path = outbound.path;
-			info.seed = info.seed; 
-			info.key = info.key; 
-			info.headerType = info.type;
+			info.seed = outbound.seed; 
+			info.key = outbound.key; 
+			info.headerType = outbound.type;
 			
 			if(..table.count(info)){
 				vless = ..inet.url.appendExtraInfo(vless,info) 
@@ -456,10 +460,14 @@ importFromString = function(str,subscribeUrl){
 				
 				if(vlessUrl.extraInfo){
 					var info = ..inet.url.splitParameters(vlessUrl.extraInfo);
-					outbound.sni = info.sni;
+					outbound.sni = info.sni : info.servername : info.serverName;
 					outbound.host = info.host;
 					outbound.path = info.path;
 					outbound.security = info.encryption;
+					outbound.publicKey = info.pbk;
+					outbound.shortId = info.sid;
+					outbound.fingerprint = info.fp;
+					outbound.spiderX = info.spx;
 					outbound.seed = info.seed; 
 					outbound.key = info.key; 
 					
@@ -467,9 +475,12 @@ importFromString = function(str,subscribeUrl){
 					outbound.type = info.headerType; //kcp || quic
 					
 					if(info.security) outbound.tls = info.security;
+					if(outbound.tls=="reality" && !outbound.security){
+						outbound.security = "reality";
+					}
 					if(info.flow) outbound.flow = info.flow;
 					if(info.allowInsecure!==null) {
-						outbound.allowInsecure = (info.allowInsecure!=="0" ||info.allowInsecure!=="false" ) 
+						outbound.allowInsecure = (info.allowInsecure!=="0" && info.allowInsecure!=="false" ) 
 					}
 					if(info.disableSessionResumption) outbound.disableSessionResumption = info.disableSessionResumption;
 					if(info.alpn) outbound.alpn = info.alpn;	 
@@ -914,6 +925,19 @@ validOutbound = function(outbound){
 		outbound.allowInsecure = outbound["skip-cert-verify"];
 		outbound["skip-cert-verify"] = null;
 	}
+
+	if(!outbound.publicKey && outbound.pbk){
+		outbound.publicKey = outbound.pbk;
+	}
+	if(!outbound.shortId && outbound.sid){
+		outbound.shortId = outbound.sid;
+	}
+	if(!outbound.fingerprint && outbound.fp){
+		outbound.fingerprint = outbound.fp;
+	}
+	if(!outbound.spiderX && outbound.spx){
+		outbound.spiderX = outbound.spx;
+	}
 	
 	if(outbound["ws-path"]){
 		outbound.path = outbound["ws-path"];
@@ -929,10 +953,80 @@ validOutbound = function(outbound){
 		if(outbound.tls) outbound.tls = "tls";
 		else outbound.tls = "";
 	}
+
+	if(outbound.protocol=="vless" && outbound.tls=="reality" && !#outbound.security){
+		outbound.security = "reality";
+	}
 	
-	if(outbound.servername){
-		outbound.host = outbound.servername;
+	if(outbound.servername || outbound.serverName){
+		var serverName = outbound.servername : outbound.serverName;
+		if(!outbound.sni){
+			outbound.sni = serverName;
+		}
+		if(!outbound.host && (outbound.network=="ws" || outbound.network=="h2" || outbound.network=="http")){
+			outbound.host = serverName;
+		}
 		outbound.servername = null;
+		outbound.serverName = null;
+	}
+
+	if(type(outbound.streamSettings)=="table"){
+		var ss = outbound.streamSettings;
+		if(ss.security && !#outbound.tls){
+			outbound.tls = ss.security;
+		}
+		
+		if(type(ss.realitySettings)=="table"){
+			var rs = ss.realitySettings;
+			outbound.tls = "reality";
+			if(!outbound.sni && rs.serverName){
+				outbound.sni = rs.serverName;
+			}
+			if(!outbound.publicKey && rs.publicKey){
+				outbound.publicKey = rs.publicKey;
+			}
+			if(!outbound.shortId && rs.shortId){
+				outbound.shortId = rs.shortId;
+			}
+			if(!outbound.fingerprint && rs.fingerprint){
+				outbound.fingerprint = rs.fingerprint;
+			}
+			if(!outbound.spiderX && rs.spiderX){
+				outbound.spiderX = rs.spiderX;
+			}
+			if(rs.show!==null){
+				outbound.show = rs.show;
+			}
+		}
+	}
+	
+	// Keep VLESS+REALITY node shape compatible with clients that expect streamSettings.realitySettings.
+	if(outbound.protocol=="vless" && outbound.tls=="reality"){
+		outbound.security = "reality";
+		outbound.encryption = "none";
+		
+		if(type(outbound.streamSettings)!="table"){
+			outbound.streamSettings = {};
+		}
+		if(type(outbound.streamSettings.realitySettings)!="table"){
+			outbound.streamSettings.realitySettings = {};
+		}
+		
+		var rs = outbound.streamSettings.realitySettings;
+		rs.fingerprint = outbound.fingerprint : outbound.fp : rs.fingerprint : "chrome";
+		rs.publicKey = outbound.publicKey : outbound.pbk : rs.publicKey;
+		rs.serverName = outbound.sni : rs.serverName;
+		rs.shortId = outbound.shortId : outbound.sid : rs.shortId;
+		rs.show = (outbound.show!==null) ? outbound.show : (rs.show!==null ? rs.show : false);
+		rs.spiderX = (outbound.spiderX!==null) ? outbound.spiderX : (outbound.spx!==null ? outbound.spx : (rs.spiderX : ""));
+		
+		// Keep flat fields in sync for existing WinXray generator path.
+		outbound.fingerprint = rs.fingerprint;
+		outbound.publicKey = rs.publicKey;
+		outbound.sni = rs.serverName;
+		outbound.shortId = rs.shortId;
+		outbound.show = rs.show;
+		outbound.spiderX = rs.spiderX;
 	}
 	
 	var httpOpts = outbound["http-opts"];  

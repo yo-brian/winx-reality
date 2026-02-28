@@ -6,7 +6,8 @@ namespace config {
 	__appName = "winXray"; 
 	__loadDefaultOutbounds = function(){
 		import v2ray.outbounds;
-		var serverData =  ..string.load("/v2ray-core/winXray-default-servers.json") 
+		var serverData =  ..string.load("/xray-core/winXray-default-servers.json") 
+			: ..string.load("/v2ray-core/winXray-default-servers.json") 
 			: $"/v2ray-core/winXray-default-servers.json"
 		
 		proxy.outbounds = ..v2ray.outbounds.importFromString(..string.removeBom(serverData));
@@ -37,6 +38,25 @@ if(config.proxy.test === null){
 
 if(config.proxy.autoRefreshSubscription === null){
 	config.proxy.autoRefreshSubscription = true;
+}
+
+if(type(config.proxy.tun)!="table"){
+	config.proxy.tun = {};
+}
+if(config.proxy.tun.enabled===null){
+	config.proxy.tun.enabled = false;
+}
+if(!config.proxy.tun.name){
+	config.proxy.tun.name = "WinXray Tunnel";
+}
+if(!config.proxy.tun.mtu){
+	config.proxy.tun.mtu = 1500;
+}
+if(!config.proxy.tun.ipv4){
+	config.proxy.tun.ipv4 = "172.19.0.1/30";
+}
+if(!config.proxy.tun.ipv6){
+	config.proxy.tun.ipv6 = "fdfe:dcba:9876::1/126";
 }
 
 if(!config.proxy.testInterval){
