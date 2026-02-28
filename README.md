@@ -101,6 +101,39 @@ IP 段代理规则：
 <span style="color:green">Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\WinHttpAutoProxySvc</span>
 将 start 的值改为 2， 也就是将 WinHttpAutoProxySvc 服务改为自动启动，然后重启计算机即可。
 
+# VLESS + REALITY 出现 “received real certificate” 怎么办
+
+如果后端日志反复出现：
+
+```text
+transport/internet/reality: REALITY: received real certificate (potential MITM or redirection)
+```
+
+这通常不是客户端程序崩溃，而是 **REALITY 握手没有命中预期参数**，服务端因此收到了真实站点证书（被重定向、参数不匹配、或被中间层改写）。可按下面顺序排查：
+
+1. **核对 `serverName` / `sni`**
+   - 客户端 `realitySettings.serverName` 必须与服务端允许的 `serverNames` 之一完全一致。
+   - 不要带 `https://`、不要带路径、不要写错大小写或多余空格。
+
+2. **核对 `publicKey`、`shortId`、端口**
+   - `publicKey` 必须来自服务端当前私钥对生成结果；服务端换过密钥后，旧客户端会立即报这个错。
+   - `shortId` 必须命中服务端 `shortIds` 列表（长度、内容都要一致，常见为 0~16 位十六进制）。
+   - 客户端连接端口必须是 REALITY 入站端口，不能连到 Nginx/Caddy/TLS 站点端口。
+
+3. **确认链路中没有 TLS 终止或转发改写**
+   - REALITY 入站前面不要套 CDN（尤其橙云）、WAF、反代 TLS 终止。
+   - 如果做了四层转发，必须是纯 TCP 透传，不能做 HTTPS 回源、证书替换或协议识别改写。
+
+4. **检查时间与版本**
+   - 客户端和服务端系统时间偏差不要太大（建议先 NTP 校时）。
+   - 更新到较新的 Xray Core，避免旧版本 REALITY 兼容问题。
+
+5. **最小化配置回归测试**
+   - 先只保留一个用户、一个 `shortId`、一个 `serverName` 进行直连测试。
+   - 能通后再逐步加回路由、分流、前置转发等复杂配置，便于定位是哪一层引入问题。
+
+一个最常见的真实原因是：**服务端重装或更新后更换了 REALITY 私钥，但客户端还在用旧 `publicKey`**。出现该错误时，优先先对这一项。
+
 # Core 默认路径：
 
 可在「 winXray/ 配置 / Core配置 」 下载更新 V2Ray Core / Xray Core / SSR Core ，  
