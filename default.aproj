@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<project ver="10" name="WinXray" libEmbed="true" icon="\forms\ico\app.ico" ui="win" output="WinXray.exe" CompanyName="WinXray" FileDescription="通用代理客户端" LegalCopyright="Copyright (C) WinXray" ProductName="WinXray" InternalName="WinXray" FileVersion="3.8.0.3" ProductVersion="3.8.0.3" publishDir="\WinXray" dstrip="false" local="false">
+<project ver="10" name="WinXray" libEmbed="true" icon="\forms\ico\app.ico" ui="win" output="WinXray.exe" CompanyName="WinXray" FileDescription="通用代理客户端" LegalCopyright="Copyright (C) WinXray" ProductName="WinXray" InternalName="WinXray" FileVersion="3.8.0.34" ProductVersion="3.8.0.34" dstrip="false" local="false">
 	<file name="main" path="main.aardio"/>
 	<folder name="窗体" path="forms" comment="" embed="true" local="false" ignored="false">
 		<folder name="ico" path="forms\ico" comment="forms\ico">
@@ -30,10 +30,11 @@
 			</folder>
 		</folder>
 	</folder>
-	<folder name="v2RayCore" path="v2ray-core" comment="" embed="false" local="false" ignored="false">
-		<file name="LICENSE" path="v2ray-core\LICENSE" comment="v2ray-core\LICENSE"/>
-		<file name="v2ctl.exe" path="v2ray-core\v2ctl.exe" comment="v2ray-core\v2ctl.exe"/>
-		<file name="v2ray.exe" path="v2ray-core\v2ray.exe" comment="v2ray-core\v2ray.exe"/>
-		<file name="winXray-default-servers.json" path="v2ray-core\winXray-default-servers.json" comment="v2ray-core\winXray-default-servers.json"/>
+	<folder name="singBoxCore" path="sing-box" comment="" embed="false" local="false" ignored="false">
+		<file name="LICENSE" path="sing-box\LICENSE" comment="sing-box\LICENSE"/>
+		<file name="libcronet.dll" path="sing-box\libcronet.dll" comment="sing-box\libcronet.dll"/>
+		<file name="sing-box.exe" path="sing-box\sing-box.exe" comment="sing-box\sing-box.exe"/>
+		<file name="wintun.dll" path="sing-box\wintun.dll" comment="sing-box\wintun.dll"/>
+		<file name="winXray-default-servers.json" path="sing-box\winXray-default-servers.json" comment="sing-box\winXray-default-servers.json"/>
 	</folder>
 </project>

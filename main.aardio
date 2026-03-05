@@ -160,6 +160,75 @@ else {
 /*}}*/
 import fonts.fontAwesome;
 import win.ui;
+import fsys;
+import inet.url;
+
+var getImportTextFromArgv = function(){
+	var protocolArg;
+	for(k,v in _ARGV){
+		if(type(v) == "string"){
+			var arg = string.trim(v,'"\t\r\n ');
+			if(string.startWith(string.lower(arg),"winxray://")){
+				protocolArg = arg;
+				break;
+			}
+		}
+	}
+	
+	if(!protocolArg){
+		return;
+	}
+	
+	var payload;
+	var parsed = inet.url.split(protocolArg);
+	if(parsed && parsed.extraInfo){
+		var args = inet.url.splitParameters(parsed.extraInfo);
+		payload = args.url || args.text || args.data || args.sub;
+		if(payload){
+			payload = inet.url.decode(payload);
+		}
+	}
+	
+	if(!payload){
+		payload = string.match(protocolArg,"^winxray://[^?]+%?(.*)$");
+		if(payload){
+			payload = inet.url.decode(payload);
+		}
+	}
+	
+	return payload && string.trim(payload,'"\t\r\n ');
+}
+
+var pendingImportPath = io.appData("/winXray/import.pending.txt");
+var savePendingImport = function(text){
+	if(!text) return;
+	fsys.createDir(io.appData("/winXray/"));
+	string.save(pendingImportPath,text);
+}
+
+var popPendingImport = function(){
+	var text = string.load(pendingImportPath);
+	if(text){
+		fsys.delete(pendingImportPath);
+		return string.trim(text,'"\t\r\n ');
+	}
+}
+
+var ensureWinxrayProtocol = function(){
+	if(_STUDIO_INVOKED){
+		return;
+	}
+	
+	import process;
+	var exe = `"` + io._exepath + `" "%1"`;
+	process.execute("reg",`add "HKCU\Software\Classes\winxray" /ve /d "URL:winXray Protocol" /f`);
+	process.execute("reg",`add "HKCU\Software\Classes\winxray" /v "URL Protocol" /d "" /f`);
+	process.execute("reg",`add "HKCU\Software\Classes\winxray\DefaultIcon" /ve /d "` + io._exepath + `,1" /f`);
+	process.execute("reg",`add "HKCU\Software\Classes\winxray\shell\open\command" /ve /d "` + exe + `" /f`);
+}
+
+var startupImportText = getImportTextFromArgv();
+ensureWinxrayProtocol();
 /*DSG{{*/
 mainForm = win.form(text="winXray";right=1019;bottom=679;bgcolor=15793151;border="none")
 mainForm.add(
@@ -177,6 +246,9 @@ titleBar={cls="bkplus";left=0;top=0;right=1022;bottom=38;bgcolor=8036607;dl=1;dr
 import win.ui.atom;
 var atom,hwnd = mainForm.atom("DFA5667E-1D8C-49C0-8918-C6FEC2DECCF8");
 if(!atom){
+	if(startupImportText){
+		savePendingImport(startupImportText);
+	}
 	win.showForeground(hwnd);
 	win.quitMessage();	
 	return;
@@ -354,6 +426,20 @@ mainForm.tray = win.util.tray(mainForm)
 if(!_ARGV.tray){ 
 	mainForm.show(); 
 }
+
+mainForm.setTimeout(function(){
+	var importText = popPendingImport() || startupImportText;
+	if(importText){
+		publish("uiCommand.importFromText",importText,true);
+	}
+},600);
+
+mainForm.setInterval(1200,function(){
+	var importText = popPendingImport();
+	if(importText){
+		publish("uiCommand.importFromText",importText,true);
+	}
+});
 
 import win.image;
 var trayIcons = {

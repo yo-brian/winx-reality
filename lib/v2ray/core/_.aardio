@@ -1,6 +1,4 @@
 ﻿//内核进程
-import v2ray.core.ssr;
-import v2ray.core.naive;
 import wsock.tcp.server;
 import process.popen;
 import config;
@@ -25,7 +23,6 @@ isInboundPortChanged = function(){
 }
 
 var prcsV2Ray,v2RayStarting;
-var coreVersionTextCache = {};
 isHexString = function(str){
 	if(!#(str:"")){
 		return false;
@@ -180,23 +177,6 @@ buildRealityChecklist = function(outbound){
 	
 	return ..string.join(lines,"\r\n");
 }
-getCoreVersionText = function(corePath){
-	if(coreVersionTextCache[corePath]!==null){
-		return coreVersionTextCache[corePath];
-	}
-	
-	var p,err = ..process.popen(corePath,"version");
-	if(!p){
-		coreVersionTextCache[corePath] = "";
-		return "";
-	}
-	
-	p.codepage = 65001;
-	var txt = p.read(-1):"";
-	p.close();
-	coreVersionTextCache[corePath] = txt;
-	return txt;
-}
 import process.job.limitKill;
 restart = function(editor,outbound){
 	
@@ -231,7 +211,7 @@ restart = function(editor,outbound){
     }
     
     if(_WINXP){
-    	return null,"抱歉！Xray Core 不支持 Windows XP, 仅支持 Windows 7, Windows 10 以及更新操作系统。";  
+    	return null,"抱歉！sing-box 不支持 Windows XP, 仅支持 Windows 7, Windows 10 以及更新操作系统。";  
     }
 
 	if(type(..config.core.default)!="table"){
@@ -289,41 +269,29 @@ restart = function(editor,outbound){
 		..config.core.save();
 	}
 
-	if(v2RayStarting){ return null,"Xray Core 正在启动中，请稍后重试"  } 
+	if(v2RayStarting){ return null,"sing-box 正在启动中，请稍后重试"  } 
 	v2RayStarting = true;
 	
 	var corePath = getPath(editor.hwnd);
 	if(!corePath){ 
 		v2RayStarting = false;
-		return false,"启动失败,未找到 xray.exe"; 
+		return false,"启动失败,未找到 sing-box.exe"; 
 	}  
 	
 	var tunMode = ..config.proxy.mode=="tun";
-	if(tunMode){
-		var coreVersionText = getCoreVersionText(corePath);
-		if(..string.find(coreVersionText,"Xray 24.")){
-			v2RayStarting = false;
-			return false,"当前 Xray Core 24.x 不支持 TUN 入站(tun)，请切换到 26.x 官方版或关闭 TUN 模式";
-		}
-		// Xray 1.x custom builds in this project are not compatible with current tun config schema.
-		if(..string.find(coreVersionText,"Xray 1.") && ..string.find(coreVersionText,"Custom")){
-			v2RayStarting = false;
-			return false,"当前 Xray Core (1.x Custom) 与 TUN 配置不兼容，请关闭 TUN 或切换到 26.x 官方版后再启用";
-		}
-	}
 	
 	if(tunMode){
 		var coreDir = ..io.splitpath(corePath).dir;
 		var wintunPath = ..io.joinpath(coreDir,"wintun.dll");
 		if(!..io.exist(wintunPath)){
-			var fallbackWintun = ..io.fullpath("/xray-core/wintun.dll");
+			var fallbackWintun = ..io.fullpath("/WinXray/sing-box/wintun.dll");
 			if(..io.exist(fallbackWintun)){
 				import fsys;
 				fsys.copy(fallbackWintun,wintunPath);
 			}
 		}
 		if(!..io.exist(wintunPath)){
-			var fallbackWintun = ..io.fullpath("/v2ray-core/wintun.dll");
+			var fallbackWintun = ..io.fullpath("/sing-box/wintun.dll");
 			if(..io.exist(fallbackWintun)){
 				import fsys;
 				fsys.copy(fallbackWintun,wintunPath);
@@ -336,81 +304,50 @@ restart = function(editor,outbound){
 		}
 	}
 	
-	// 先不要断开当前代理，使用当前代理下载会更快。
-	if( outbound.protocol == "ssr" ){ 
-		if(!..v2ray.core.ssr.getPath(editor.hwnd)){
-			v2RayStarting = false;
-			return false,"启动失败,未找到 SSR Core";
-		}
-	}
-	if( outbound.protocol == "naive" ){ 
-		if(!..v2ray.core.naive.getPath(editor.hwnd)){
-			v2RayStarting = false;
-			return false,"启动失败,未找到 NaïveProxy Core";
-		}
-	}
-	
 	..publish("activeOutbound",false);
 	
 	import sysProxy;
 	..sysProxy.reset(false);
 	
 
-	socksProxyPort = inbounds[1].port;  
-	httpProxPort = inbounds[2].port;
-	if( (! socksProxyPort) || socksProxyPort >=  49152 ){ socksProxyPort = ..wsock.tcp.server.getFreePort("127.0.0.1",1081,10801,10811,44821)  }
-	if( (! httpProxPort) || httpProxPort >=  49152 ){ httpProxPort = ..wsock.tcp.server.getFreePort("127.0.0.1",1082,10802,10812,44822) }
+	var preferSocksPort = tonumber(inbounds[1].port);
+	var preferHttpPort = tonumber(inbounds[2].port);
+	if((!preferSocksPort) || preferSocksPort <= 0 || preferSocksPort >= 49152){
+		preferSocksPort = 1081;
+	}
+	if((!preferHttpPort) || preferHttpPort <= 0 || preferHttpPort >= 49152){
+		preferHttpPort = 1082;
+	}
+	socksProxyPort = ..wsock.tcp.server.getFreePort("127.0.0.1",preferSocksPort,1081,10801,10811,44821);
+	httpProxPort = ..wsock.tcp.server.getFreePort("127.0.0.1",preferHttpPort,1082,10802,10812,44822);
+	if(!socksProxyPort){
+		v2RayStarting = false;
+		return false,"启动失败: 未找到可用 SOCKS 端口";
+	}
+	if(!httpProxPort){
+		v2RayStarting = false;
+		return false,"启动失败: 未找到可用 HTTP 端口";
+	}
+	if(socksProxyPort != preferSocksPort){
+		..publish("uiCommand.print","SOCKS 端口 " + preferSocksPort + " 不可用，已自动切换到 " + socksProxyPort);
+	}
+	if(httpProxPort != preferHttpPort){
+		..publish("uiCommand.print","HTTP 端口 " + preferHttpPort + " 不可用，已自动切换到 " + httpProxPort);
+	}
 	
 	if(prcsV2Ray){
 		prcsV2Ray.terminate();
 		prcsV2Ray = null;
 	}
 	
-	..v2ray.core.ssr.stop();
-	..v2ray.core.naive.stop();
-	
-	var nexCore;
-	if( outbound.protocol == "ssr" ){  
-		var nextProxyPort = ..wsock.getFreePort();
-		if(!..v2ray.core.ssr.restart(editor,outbound,nextProxyPort)){
-			v2RayStarting = false;
-			return false,"SSR Core 启动失败";
-		}
-
-		outbound = {
-			protocol = "socks";
-			address = "127.0.0.1";
-			port = nextProxyPort;
-		} 
-		
-		nexCore = ..v2ray.core.ssr;
-	}
-	elseif( outbound.protocol == "naive" ){  
-		var nextProxyPort = ..wsock.getFreePort();
-		if(!..v2ray.core.naive.restart(editor,outbound,nextProxyPort)){
-			v2RayStarting = false;
-			return false,"SSR Core 启动失败";
-		}
-
-		outbound = {
-			protocol = "socks";
-			address = "127.0.0.1";
-			port = nextProxyPort;
-		} 
-		
-		nexCore = ..v2ray.core.naive;
-	}
-
 	if( ! prcsV2Ray ){ 
 		
-		import v2ray.core.configJson;
-		var jsonPath,err = ..v2ray.core.configJson.write(
+		import v2ray.core.singboxJson;
+		var jsonPath,err = ..v2ray.core.singboxJson.write(
 			..io.joinpath(..io.splitpath(corePath).dir,"config.json")
 			,outbound,socksProxyPort,httpProxPort);
 	
 		if(!jsonPath){
-			if( nexCore ){ nexCore.stop(); } 
-			
 			v2RayStarting = false;
 			return false,err:"启动失败,写入配置文件遇到错误！"; 
 		}
@@ -420,23 +357,7 @@ restart = function(editor,outbound){
 		prcsV2Ray,err = ..process.popen(corePath,"run","-c","config.json");
 		..publish("uiCommand.print", corePath);																		   
 		if(!prcsV2Ray){
-			if( nexCore ){ nexCore.stop(); }
-	
-			..publish("uiCommand.print",err:"启动 Xray Core 时遇到未知错误!");
-			
-			if(!..process().isWow64()){
-				if(..process.isExe(corePath)!="PE32"){
-					..io.remove(corePath);
-					if(!..io.exist(corePath)){
-						..publish("uiCommand.print","当前操作系统是32位，已删除无效的64位 Xray Core，正在下载32位 Xray Core");
-						v2RayStarting = false;
-						return restart(editor,outbound)	
-					}
-					else {
-						..publish("uiCommand.print","当前操作系统是32位，但是找到的 Xray Core 是64位，请重新下载32位 Xray Core");
-					} 
-				} 	
-			}
+			..publish("uiCommand.print",err:"启动 sing-box 时遇到未知错误!");
 			
 			v2RayStarting = false;
 			return;
@@ -460,8 +381,6 @@ restart = function(editor,outbound){
 }
 
 stop = function(){
-	..v2ray.core.ssr.stop();
-	
 	if(prcsV2Ray){
 		prcsV2Ray.terminate();
 		prcsV2Ray = null;
@@ -473,108 +392,42 @@ stop = function(){
    	v2ray.github.setProxy(false);
 }
 
-var getV2RayCoreUrl = function(){
-	var msgDlg = ..win.dlg.message(..mainForm); 
-	var form = msgDlg.create('正在获取 Xray Core 最新版本',,true)
-	form.icon = '\uF1D8';
-	form.progress.startProgress(50); 
-	
-	var url,tag = ..win.invoke(function(){
-    	import process;
-		import inet.http;
-		var http = ..inet.http();
-		var url = http.location("https://github.com/v2fly/v2ray-core/releases/latest");
-		http.close();
-		
-		if(!url) return;
-		
-		var tag = ..string.match(url,"[^/]+$")
-		if(!tag || (tag=="latest")) return;;
-		
-		return "https://github.com/v2fly/v2ray-core/releases/download/" 
-			+ tag + "/v2ray-windows-" +	(..process().isWow64() ? "64" : "32") + ".zip",tag	
-	});
-	form.close();
-    
-	return url,tag;
-} 
-
 getPath = function(hwnd){
-	var path = ..io.fullpath("/WinXray/xray/xray.exe");
+	var path = ..io.fullpath("/WinXray/sing-box/sing-box.exe");
 	if(..io.exist(path)){
 		return path;
 	}
 
-	var path = ..io.fullpath("/xray-core/xray.exe");
+	var path = ..io.fullpath("/sing-box/sing-box.exe");
 	if(..io.exist(path)){
 		return path;
 	}
 	
-	var path = ..io.fullpath("/v2ray-core/xray.exe");
+	var path = ..io.appData("/winXray/core/sing-box.exe");
 	if(..io.exist(path)){
 		return path;
 	}
 	
-	var path = ..io.appData("/winXray/core/xray.exe");
-	if(..io.exist(path)){
-		return path;
-	}
-	
-	if(self.lastDownloadingCoreFailed){
-		return;
-	}
-	
-	import v2ray.core.xray;
-	var versionTag = ..v2ray.core.xray.updateCore();
-	if(versionTag){
-		self.lastDownloadingCoreFailed = null;
-		var path = ..io.fullpath("/WinXray/xray/xray.exe");
-		if(..io.exist(path)){
-			return path;
-		}
-		var path = ..io.fullpath("/xray-core/xray.exe");
-		if(..io.exist(path)){
-			return path;
-		}
-		var path = ..io.fullpath("/v2ray-core/xray.exe");
-		if(..io.exist(path)){
-			return path;
-		}
-		var path = ..io.appData("/winXray/core/xray.exe");
-		if(..io.exist(path)){
-			return path;
-		}
-	}
 	self.lastDownloadingCoreFailed = true;
 } 
 
 getCoreDir = function(hwnd){
-	var path = ..io.fullpath("/WinXray/xray/xray.exe");
+	var path = ..io.fullpath("/WinXray/sing-box/sing-box.exe");
 	if(..io.exist(path)){
-		return ..io.fullpath("/WinXray/xray/");
+		return ..io.fullpath("/WinXray/sing-box/");
 	}
 
-	var path = ..io.fullpath("/xray-core/xray.exe");
+	var path = ..io.fullpath("/sing-box/sing-box.exe");
 	if(..io.exist(path)){
-		return ..io.fullpath("/xray-core/");
+		return ..io.fullpath("/sing-box/");
 	}
 	
-	var path = ..io.fullpath("/v2ray-core/xray.exe");
-	if(..io.exist(path)){
-		return ..io.fullpath("/v2ray-core/");
-	}
-		
-	var path = ..io.appData("/winXray/core/xray.exe");
+	var path = ..io.appData("/winXray/core/sing-box.exe");
 	if(..io.exist(path)){
 		return ..io.appData("/winXray/core/");
 	}
 	
-	var path = ..io.fullpath("/xray-core/");
-	if(..io.exist(path)){
-		return path;
-	}
-	
-	var path = ..io.fullpath("/v2ray-core/");
+	var path = ..io.fullpath("/sing-box/");
 	if(..io.exist(path)){
 		return path;
 	}
@@ -582,20 +435,180 @@ getCoreDir = function(hwnd){
 	return ..io.appData("/winXray/core/");
 } 
 
-updateCore = function(){
-	import v2ray.core.xray;
-	var versionTag = ..v2ray.core.xray.updateCore();
-	if(versionTag){
-		self.lastDownloadingCoreFailed = null;
-		return versionTag;
+getCoreVersion = function(){
+	var corePath = getPath();
+	if(!corePath){
+		return;
 	}
-	self.lastDownloadingCoreFailed = true;
+	
+	var prcs,err = ..process.popen(corePath,"version");
+	if(!prcs){
+		return;
+	}
+	
+	var out = prcs.read(-1);
+	prcs.close();
+	if(!out){
+		return;
+	}
+	
+	var line = ..string.match(out,"^[^\r\n]+");
+	return ..string.trim(line:"");
+}
+
+updateCore = function(){
+	var mirrorPrefix = ..string.trim(..config.proxy.singBoxMirrorPrefix:"",'"\t\r\n ');
+	var applyMirror = function(url){
+		if(!mirrorPrefix){
+			return url;
+		}
+		
+		if(..string.endWith(mirrorPrefix,"/")){
+			return mirrorPrefix + url;
+		}
+		
+		return mirrorPrefix + "/" + url;
+	}
+	
+	var getSingBoxZipUrls = function(){
+		var msgDlg = ..win.dlg.message(..mainForm); 
+		var form = msgDlg.create('正在获取 sing-box 最新版本',,true);
+		form.icon = '\uF27D';
+		form.progress.startProgress(50); 
+		
+		var rawUrls,tag = ..win.invoke(function(){
+			import inet.http;
+			import web.json;
+			
+			var http = inet.http();
+			
+			var body = http.get("https://api.github.com/repos/SagerNet/sing-box/releases/latest");
+			if(body){
+				var data = web.json.tryParse(body);
+				if(type(data)=="table"){
+					var tag = data.tag_name;
+					if(tag){
+						var version = string.replace(tag,"^v","");
+						var byName = {};
+						for(i,asset in data.assets){
+							if(type(asset)=="table" && asset.name && asset.browser_download_url){
+								byName[asset.name] = asset.browser_download_url;
+							}
+						}
+						
+						var urls = {};
+						var preferred = "sing-box-" + version + "-windows-amd64.zip";
+						var fallback = "sing-box-" + version + "-windows-386.zip";
+						if(byName[preferred]){
+							table.push(urls,byName[preferred]);
+						}
+						if(byName[fallback]){
+							table.push(urls,byName[fallback]);
+						}
+						
+						if(!#urls){
+							for(i,asset in data.assets){
+								if(type(asset)=="table" && asset.name && asset.browser_download_url){
+									if(string.match(asset.name,"^sing%-box%-.+%-windows%-.+%.zip$")){
+										table.push(urls,asset.browser_download_url);
+									}
+								}
+							}
+						}
+						
+						if(#urls){
+							http.close();
+							return urls,tag;
+						}
+					}
+				}
+			}
+			
+			var latest = http.location("https://github.com/SagerNet/sing-box/releases/latest");
+			http.close();
+			if(!latest){
+				return;
+			}
+			
+			var tag = string.match(latest,"[^/]+$");
+			if(!tag || tag=="latest"){
+				return;
+			}
+			
+			var version = string.replace(tag,"^v","");
+			return {
+				"https://github.com/SagerNet/sing-box/releases/download/" + tag + "/sing-box-" + version + "-windows-amd64.zip";
+				"https://github.com/SagerNet/sing-box/releases/download/" + tag + "/sing-box-" + version + "-windows-386.zip";
+			},tag;
+		});
+		form.close();
+		
+		if(!#(rawUrls:{})){
+			return;
+		}
+		
+		var urls = {};
+		for(i=1;#rawUrls;1){
+			table.push(urls,applyMirror(rawUrls[i]));
+		}
+		return urls,tag;
+	}
+	
+	..mainForm.disabled = true;
+	
+	import fsys;
+	import zlib.httpFile;
+	
+	var urls,versionTag = getSingBoxZipUrls();
+	if(!#(urls:{})){
+		..publish("uiCommand.print","获取 sing-box 最新版本失败，请检查网络或镜像前缀");
+		..mainForm.disabled = false;
+		self.lastDownloadingCoreFailed = true;
+		return;
+	}
+	
+	fsys.delete(..io.appData("/winXray/temp/sing-box/"));
+	var extractedDir = ..io.appData("/winXray/temp/sing-box/");
+	var ok = false;
+	
+	for(i=1;#urls;1){
+		var url = urls[i];
+		if(zlib.httpFile.download(url,"正在下载 sing-box 核心，版本：" + versionTag
+			,..io.appData("/winXray/download/")
+			,extractedDir,,..mainForm.hwnd)){
+			ok = true;
+			break;
+		}
+	}
+	
+	if(!ok){
+		..publish("uiCommand.print","下载 sing-box 核心失败");
+		..mainForm.disabled = false;
+		self.lastDownloadingCoreFailed = true;
+		return;
+	}
+	
+	var newCore = ..io.appData("/winXray/temp/sing-box/sing-box.exe");
+	if(!..io.exist(newCore)){
+		..mainForm.disabled = false;
+		self.lastDownloadingCoreFailed = true;
+		return;
+	}
+	
+	var coreDir = getCoreDir();
+	..io.createDir(coreDir);
+	fsys.copy(..io.appData("/winXray/temp/sing-box/*.*"),coreDir);
+	
+	..mainForm.disabled = false;
+	self.lastDownloadingCoreFailed = false;
+	..publish("uiCommand.print","sing-box 核心已更新到: " + versionTag);
+	return versionTag;
 }
 
 /**intellisense(v2ray.core)
 socksProxyPort = SOCKS代理端口
 httpProxPort = HTTP代理端口
 isInboundPortChanged() = 是否已变更代理端口配置
-restart(.(editor,outbound) = 重启启动 V2Ray 服务进程
+restart(.(editor,outbound) = 重启启动 sing-box 服务进程
 lastDownloadingCoreFailed = 上次下载 Core 是否失败,如果希望重新下载请重新赋值为 null
 end intellisense**/

@@ -38,6 +38,11 @@ tbTestInterval={cls="plus";left=278;top=27;right=559;bottom=39;bgcolor=-2512093;
 /*}}*/
 
 import style;
+winform.add(
+	staticMirrorPrefix={cls="static";text="sing-box mirror prefix:";left=430;top=132;right=600;bottom=158;align="right";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-13);transparent=1;z=32};
+	editMirrorPrefix={cls="plus";left=610;top=126;right=878;bottom=150;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};db=1;dl=1;editable="edit";font=LOGFONT(h=-13);textPadding={bottom=1};z=33}
+)
+
 winform.chkLan.skin(style.checkBox);  
 winform.chkEnableGitConfigGithub.skin(style.checkBox);  
 winform.chkSystemStart.skin(style.checkBox); 
@@ -48,10 +53,12 @@ winform.radioSocksPac.skin(style.radio)
 winform.btnUpdate.skin(style.primaryButton);
 winform.editSocksPort.skin(style.edit);
 winform.editPacPort.skin(style.edit);
+winform.editMirrorPrefix.skin(style.edit);
 winform.editPacUrl.editBox.readonly = true;
 
 import win.ui.tooltip;
 var tooltipCtrl = win.ui.tooltip( winform );
+tooltipCtrl.addTool(winform.editMirrorPrefix,"Example: https://ghfast.top/");
 tooltipCtrl.addTool(winform.editSocksPort,"点击右键可以复制IP:端口" ); 
 tooltipCtrl.addTool(winform.radioHttpProxy,"全局代理使用 HTTP 代理端口可以避免使用本机 DNS 解析域名。" );
 tooltipCtrl.addTool(winform.radioSocksProxy,'全局代理使用 SOCKS 代理端口时，Chrome 浏览器等会默认选用 SOCKS4 协议，SOCKS4 会使用本机 DNS 解析域名。' );
@@ -124,6 +131,7 @@ winform.radioHttpProxy.checked = config.proxy.useHttpGlobal;
 winform.radioSocksProxy.checked = !config.proxy.useHttpGlobal;
 winform.radioHttpPac.checked = !config.proxy.useSocksPac;
 winform.radioSocksPac.checked = config.proxy.useSocksPac;
+winform.editMirrorPrefix.text = config.proxy.singBoxMirrorPrefix : "";
 winform.hotkey.sethotkey(config.proxy.hotkey[1],config.proxy.hotkey[2])
 onInboundsUpdated();
 onPacUpdated();
@@ -226,6 +234,14 @@ winform.btnUpdate.oncommand = function(id,event){
 	if(oldPacPort!=tonumber(winform.editPacPort.text)){ 
 		v2ray.pacServer.restart();
 	}
+	
+	var mirrorPrefix = string.trim(winform.editMirrorPrefix.text:"",'"\'\t\r\n ');
+	if(#mirrorPrefix && !string.startWith(mirrorPrefix,"http://") && !string.startWith(mirrorPrefix,"https://")){
+		winform.editMirrorPrefix.editBox.showErrorTip(,"镜像前缀必须以 http:// 或 https:// 开头");
+		winform.btnUpdate.disabledText = null;
+		return;
+	}
+	config.proxy.singBoxMirrorPrefix = mirrorPrefix;
 	
 	config.proxy.save();
 	sysProxy.reset(true);

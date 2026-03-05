@@ -10,5 +10,6 @@ test=true;
 enableGitConfigGithub=true;
 mode="pac";
 hotkey={[1]=7;[2]=80};
-useHttpGlobal=true
+useHttpGlobal=true;
+debugDumpMergedConfig=true
 }

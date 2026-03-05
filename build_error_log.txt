@@ -1,9 +1,12 @@
 ﻿错误发生在文件---------------:
-H:\code\winx-reality\lib\config.aardio
+H:\code\winx-reality\forms\main\config\jsonConfig.aardio
 错误信息---------------:
 
 {Error}:
-{Line}:#10
-{File}:H:\code\winx-reality\lib\config.aardio
-{Error}:Cannot include file:/xray-core/winXray-default-servers.json
-{Near}:'$'
+{Line}:#642
+{File}:H:\code\winx-reality\forms\main\config\jsonConfig.aardio
+{Error}:
+{Expected}:'}'
+{Match for}:'{'
+{Match line}:642 
+{Near}:'鐢ㄤ簬鎸囧畾http'

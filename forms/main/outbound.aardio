@@ -1,19 +1,19 @@
-import web.json;
+﻿import web.json;
 import win.dlg.message;
 import fonts.fontAwesome;
 import win.ui;
 /*DSG{{*/
 var winform = win.form(text="winXray - 代理服务器配置";right=999;bottom=504;bgcolor=16777215;exmode="none";min=false;mode="popup")
 winform.add(
-btnAddOutbound={cls="plus";text="新 增";left=705;top=410;right=808;bottom=446;align="left";bgcolor=14935259;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF067';notify=1;textPadding={left=40};z=17};
+btnAddOutbound={cls="plus";text="新增";left=705;top=410;right=808;bottom=446;align="left";bgcolor=14935259;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF067';notify=1;textPadding={left=40};z=17};
 btnCopySharedLink={cls="plus";text="复制";left=829;top=471;right=901;bottom=496;align="left";clip=1;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF0C1';notify=1;textPadding={left=30};z=1};
 btnGenGuid={cls="plus";text="生成";left=914;top=259;right=986;bottom=284;align="left";clip=1;dr=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF0AD';notify=1;textPadding={left=30};z=19};
 btnImportSharedLink={cls="plus";text="导入";left=912;top=471;right=984;bottom=496;align="left";clip=1;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF0C1';notify=1;textPadding={left=30};z=21};
 btnInsertField={cls="plus";text="插入更多配置字段";left=10;top=0;right=191;bottom=24;align="left";dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF196 ';notify=1;textPadding={left=30};z=18};
-btnSaveOutbound={cls="plus";text="保 存";left=826;top=410;right=929;bottom=446;align="left";bgcolor=11580047;db=1;disabled=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF0C7';notify=1;textPadding={left=40};z=16};
-btnUpdateCore={cls="plus";text="下载 / 更新 NaÏveProxy Core";left=637;top=61;right=979;bottom=89;align="left";color=3947580;dr=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-17;name='FontAwesome');padding={left=18}};iconText='\uF0AB';notify=1;textPadding={left=50};z=23};
+btnSaveOutbound={cls="plus";text="保存";left=826;top=410;right=929;bottom=446;align="left";bgcolor=11580047;db=1;disabled=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF0C7';notify=1;textPadding={left=40};z=16};
+btnUpdateCore={cls="plus";text="当前核心: sing-box (无需更新)";left=637;top=61;right=979;bottom=89;align="left";color=3947580;dr=1;dt=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-17;name='FontAwesome');padding={left=18}};iconText='\uF0AB';notify=1;textPadding={left=50};z=23};
 cmbNetwork={cls="combobox";left=656;top=97;right=814;bottom=123;dr=1;dt=1;edge=1;items={"tcp";"kcp";"ws";"h2";"quic"};mode="dropdown";z=13};
-cmbProtocol={cls="combobox";left=656;top=28;right=814;bottom=54;dr=1;dt=1;edge=1;items={"vmess";"vless";"trojan";"trojan-go";"ssr";"shadowsocks";"naive";"socks";"https";"http"};mode="dropdown";z=12};
+cmbProtocol={cls="combobox";left=656;top=28;right=814;bottom=54;dr=1;dt=1;edge=1;items={"vmess";"vless";"trojan";"trojan-go";"shadowsocks";"socks";"https";"http"};mode="dropdown";z=12};
 cmbSecurity={cls="combobox";left=656;top=140;right=814;bottom=166;dr=1;dt=1;edge=1;items={"auto";"none";"chacha20-poly1305";"aes-128-gcm"};mode="dropdown";z=15};
 editAddress={cls="plus";left=656;top=183;right=878;bottom=207;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};dr=1;dt=1;editable="edit";font=LOGFONT(h=-16);textPadding={bottom=1};z=2};
 editId={cls="plus";left=656;top=263;right=986;bottom=287;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};clip=1;dr=1;dt=1;editable="edit";font=LOGFONT(h=-16);notify=1;textPadding={right=75;bottom=1};z=20};
@@ -24,9 +24,9 @@ editSharedLink={cls="plus";left=13;top=475;right=986;bottom=499;align="left";bgc
 lbId={cls="static";text="登录用户( id ):";left=492;top=262;right=641;bottom=288;align="right";bgcolor=16777215;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=6};
 lbSecurity={cls="static";text="加密方式( security ):";left=473;top=136;right=641;bottom=162;align="right";bgcolor=16777215;dl=1;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=10};
 qrPicture={cls="plus";left=510;top=358;right=606;bottom=454;bgcolor=16777215;db=1;dr=1;notify=1;repeat="scale";z=24};
-static={cls="static";text="服务器( address ):";left=481;top=178;right=641;bottom=204;align="right";bgcolor=16777215;dl=1;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=3};
+static={cls="static";text="服务器地址( address ):";left=481;top=178;right=641;bottom=204;align="right";bgcolor=16777215;dl=1;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=3};
 static10={cls="static";text="代理协议( protocol ):";left=473;top=26;right=641;bottom=52;align="right";bgcolor=16777215;dl=1;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=11};
-static2={cls="static";text="服务端口( port ):";left=498;top=220;right=641;bottom=246;align="right";bgcolor=16777215;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=5};
+static2={cls="static";text="服务器端口( port ):";left=498;top=220;right=641;bottom=246;align="right";bgcolor=16777215;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=5};
 static4={cls="static";text="备注( ps ):";left=498;top=304;right=641;bottom=330;align="right";bgcolor=16777215;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=8};
 static5={cls="static";text="传输协议( network ):";left=473;top=94;right=641;bottom=126;align="right";bgcolor=16777215;dl=1;dr=1;dt=1;font=LOGFONT(h=-16);transparent=1;z=9}
 )
@@ -35,7 +35,7 @@ static5={cls="static";text="传输协议( network ):";left=473;top=94;right=641;
 winform.outboundConfig = {};
 winform.addOutboundField = function(k,v){
 	if(winform.outboundConfig[k] !== null){
-		return winform.msgInfo("该字段已经存在，不需要添加！"); 
+		return winform.msgInfo("该字段已存在，无需重复添加！"); 
 	}
 	
 	winform.outboundConfig[k] = v;
@@ -57,7 +57,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
+		winform.btnUpdateCore.text = '当前核心: sing-box (无需更新)';
 		winform.editId.setCueBannerText("请输入 GUID");
 	}
 	elseif(sel=="shadowsocks"){
@@ -71,23 +71,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
-		winform.editId.setCueBannerText("请输入密码");
-	}
-	elseif(sel=="ssr"){
-		winform.cmbNetwork.items = {
-			"origin";"plain";"auth_sha1_v4";"http_simple";"auth_aes128_sha1";"http_post";"auth_aes128_md5";"http_mix";"auth_chain_a";"tls1.2_ticket_auth";"auth_chain_b";"tls1.2_ticket_fastauth";"auth_chain_c/d/e/f";
-		}
-		winform.cmbNetwork.selIndex = 1;
-		winform.outboundConfig.network = "origin";
-		
-		winform.cmbSecurity.items = {
-			"none";"table";"rc4";"rc4-md5-6";"rc4-md5";"aes-128-cfb";"aes-192-cfb";"aes-256-cfb";"aes-128-ctr";"aes-192-ctr";"aes-256-ctr";"camellia-128-cfb";"camellia-192-cfb";"camellia-256-cfb";"bf-cfb";"cast5-cfb";"des-cfb";"idea-cfb";"rc2-cfb";"seed-cfb";"salsa20";"chacha20";"chacha20-ietf";		
-		}
-
-		winform.cmbSecurity.selIndex = 1;
-		winform.outboundConfig.security = "none";  
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： SSR Core';
+		winform.btnUpdateCore.text = '当前核心: sing-box (无需更新)';
 		winform.editId.setCueBannerText("请输入密码");
 	}
 	elseif(sel=="vless"){
@@ -102,21 +86,8 @@ winform.cmbProtocol.onProtocolChange = function(){
 		}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
+		winform.btnUpdateCore.text = '当前核心: sing-box (无需更新)';
 		winform.editId.setCueBannerText("请输入 GUID");
-	}
-	elseif(sel=="naive"){
-		winform.cmbNetwork.items = {
-			"https";"quic";
-		}
-		winform.cmbNetwork.selIndex = 1;
-		winform.outboundConfig.network = "https";
-		
-		winform.cmbSecurity.items = {}
-		winform.outboundConfig.security = null;  
-		 
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： NaïveProxy Core';
-		winform.editId.setCueBannerText("请输入 用户名:密码");
 	}
 	elseif(sel=="socks"){
 		winform.cmbSecurity.items = { }	
@@ -125,7 +96,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";  
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
+		winform.btnUpdateCore.text = '当前核心: sing-box (无需更新)';
 		winform.editId.setCueBannerText("请输入 用户名:密码");
 	}
 	elseif(sel=="http" || sel=="https"){
@@ -135,7 +106,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";  
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
+		winform.btnUpdateCore.text = '当前核心: sing-box (无需更新)';
 		winform.editId.setCueBannerText("请输入 用户名:密码");
 	}
 	else {
@@ -145,7 +116,7 @@ winform.cmbProtocol.onProtocolChange = function(){
 		winform.cmbNetwork.items = {"tcp";}
 		winform.cmbNetwork.selIndex = 1;
 		winform.outboundConfig.network = "tcp";
-		winform.btnUpdateCore.text = '下载 / 更新支持组件： Xray Core';
+		winform.btnUpdateCore.text = '当前核心: sing-box (无需更新)';
 		winform.editId.setCueBannerText("请输入密码");
 	} 
 }
@@ -211,32 +182,32 @@ winform.editPs.editBox.onChange = function(){
 }
 
 var editOutboundTip = {
-	address = {"代理服务器地址";"值可以是域名或者IP地址"};
-	alterId = {"额外ID";"仅用于VMESS协议，与服务器一致即可"};
-	aid = {"额外ID(alterId)";"数值,仅用于VMESS协议，与服务器一致即可"};
-	network = {"传输协议(network)";"可选值为tcp,ws等，也可以放 SSR 的 protocol 值"};
-	net = {"传输协议(network)";"可选值为tcp,ws等"};
-	type = {"伪装类型";"默认的可选值为none,http等,kcp或quic此字段表示header.type，可选值为 none,srtp,utp,wechat-video,dtls,wireguard"}; 
-	ps = {"备注";"备注"}; 
-	tls = {"是否启用TLS";"可选值为tls,xtls或空值,vless协议省略时默认值为tls"}; 
-	path = {"请求路径";"用于ws,http等协议指定请求路径"}; 
-	httpMethod = {"HTTP请求方法";"用于http协议指定请求方法"}; 
-	headers = {"HTTP请求头";"用于ws,http等协议指定请求头"}; 
-	id = {"密码";"服务器密码"}; 
-	host = {"主机名";"用于指定http,ws等协议请求头中的主机名"}; 
-	protocol = {"协议";"可选值为 vmess,vless,shadowsocks,trojan,trojan-go 之一"}; 
-	port = {"端口";"服务器端口,数值"}; 
-	security = {"加密方式";"可省略,vmess协议默认为auto,vless协议默认为none"};
-	sni = {"TLS服务器名";"TLS客户端请求中的服务器名字段,如果不指定则默认取host或address字段值。"}; 
-	flow = {"流控";"目前仅用于选择 XTLS 的算法,省略时默认值为xtls-rprx-direct"}; 
-	publicKey = {"REALITY Public Key";"VLESS + REALITY server public key (pbk)"}; 
-	shortId = {"REALITY Short ID";"VLESS + REALITY shortId (sid)"}; 
-	fingerprint = {"REALITY Fingerprint";"VLESS + REALITY fingerprint (fp), e.g. chrome"}; 
-	spiderX = {"REALITY SpiderX";"VLESS + REALITY spiderX path (spx)"}; 
-	obfs = {"混淆插件";"可选值：plain,http_simple,http_post,tls1.2_ticket_auth ..."}; 
-	obfsParam = {"混淆参数";"SSR 里的 obfs_param"}; 
-	networkParam = {"SSR网络协议参数";"SSR 里的 protocol_param"}; 
-	concurrency = {"Mux多路复用:最大并发连接数";"最小值1，最大值1024，特殊值-1，不加载mux模块。缺省由winXray根据连接协议自动设定此值。"}; 
+	address = {"代理服务器地址";"值可以是域名或者 IP 地址"};
+	alterId = {"额外ID";"仅用于 VMESS 协议，需与服务端一致"};
+	aid = {"额外ID(alterId)";"仅用于 VMESS 协议，需与服务端一致"};
+	network = {"传输协议(network)";"常见值: tcp/ws/h2/quic，也可用于 SSR protocol"};
+	net = {"传输协议(network)";"可选值如 tcp/ws 等"};
+	type = {"伪装类型";"默认可选值: none/http 等"};
+	ps = {"备注";"节点备注"};
+	tls = {"是否启用TLS";"可选值 tls/xtls/reality 或留空"};
+	path = {"请求路径";"用于 ws/http/grpc 等传输"};
+	httpMethod = {"HTTP请求方法";"用于 http 传输指定请求方法"};
+	headers = {"HTTP请求头";"用于 ws/http 等传输"};
+	id = {"密码";"服务端密码或 UUID"};
+	host = {"主机名(host)";"用于 http/ws 请求头中的 Host"};
+	protocol = {"协议";"可选 vmess/vless/shadowsocks/trojan/trojan-go 等"};
+	port = {"端口";"服务端端口号"};
+	security = {"加密方式";"不同协议可选值不同"};
+	sni = {"TLS服务器名";"TLS 请求中的 serverName"};
+	flow = {"流控";"用于 VLESS/XTLS 特定场景"};
+	publicKey = {"REALITY Public Key";"VLESS+REALITY 的 public key"};
+	shortId = {"REALITY Short ID";"VLESS+REALITY 的 shortId"};
+	fingerprint = {"REALITY Fingerprint";"例如 chrome"};
+	spiderX = {"REALITY SpiderX";"VLESS+REALITY 的 spiderX"};
+	obfs = {"SSR混淆插件";"如 plain/http_simple/http_post 等"};
+	obfsParam = {"SSR混淆参数";"SSR obfs_param"};
+	networkParam = {"SSR协议参数";"SSR protocol_param"};
+	concurrency = {"Mux并发连接数";"默认由程序自动设置"};
 }
 
 winform.editOutbound.wndproc = function(hwnd,message,wParam,lParam){
@@ -350,12 +321,12 @@ var insertFieldMenu = {
 			winform.addOutboundField("networkParam","");
 		} 
 	};
-	{ "绑定的订阅网址:subscribeUrl";
+	{ "绑定订阅地址:subscribeUrl";
 		function(id){
 			winform.addOutboundField("subscribeUrl","https://"); 
 		} 
 	};
-	{ "允许自动测试并连接:autoConnect";
+	{ "允许自动测速并连接:autoConnect";
 		function(id){
 			winform.addOutboundField("autoConnect",false); 
 		} 
@@ -504,7 +475,7 @@ var normalizeAndValidateRealityForUi = function(){
 	}
 	if(#cfg.shortId){
 		if(!..string.match(cfg.shortId,"^[0-9a-fA-F]*$")){
-			winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 的 shortId(sid) 必须是十六进制");
+				winform.editOutbound.showErrorTip("配置错误","VLESS+REALITY 的 shortId(sid) 必须是十六进制");
 			return false;
 		}
 		if(#cfg.shortId>16){
@@ -591,10 +562,10 @@ winform.btnAddOutbound.oncommand = function(id,event){
 import win.guid;
 winform.btnGenGuid.oncommand = function(id,event){
     var sel = winform.cmbProtocol.selText;
-	if(sel=="socks" || sel=="http" || sel=="https" || sel=="naive"  ){
+	if(sel=="socks" || sel=="http" || sel=="https"){
 		winform.editId.text = "user:" + string.random(16);
 	}
-	elseif(sel=="shadowsocks" || sel=="ssr"  ){
+	elseif(sel=="shadowsocks"){
 		winform.editId.text = string.random(22,"/@0123456abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	}
 	else {
@@ -647,7 +618,7 @@ winform.btnImportSharedLink.oncommand = function(id,event){
 		}
 	}
 
-	winform.msgFrown('未导入服务器！\r\n请先复制以下格式文本（自动清除其中的无效内容）：\r\n\r\n1、分享链接或服务器JSON配置。\r\n支持 vmess://，vless://，ss://，ssr://，trojan://， trojan-go:// 等通用分享链接。\r\n\r\n2、服务器配置的JSON数组,支持winXray格式以及通用格式JSON。\r\n其他 BASE64 编码或明文返回以上1、2条规定的配置或分享链接。')
+    winform.msgFrown("未导入服务器：请先复制分享链接、订阅地址或 JSON 配置。")
 }
  
 winform.btnCopySharedLink.skin(style.link)
@@ -658,7 +629,7 @@ winform.btnCopySharedLink.oncommand = function(id,event){
 	}
 	else {
 		win.clip.write(lnk);
-		winform.msgOk("分享链接已复制到剪贴板",1500);
+			winform.msgOk("分享链接已复制到剪贴板",1500);
 	} 	
 }
 
@@ -688,59 +659,8 @@ winform.btnSaveOutbound.disabled = true;
 winform.btnUpdateCore.skin(style.plainButton)
 winform.btnUpdateCore.oncommand = function(id,event){ 
 	winform.btnUpdateCore.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
-	var sel = winform.cmbProtocol.selText;
-	
-	if(sel=="ssr"){
-		import v2ray.core.ssr;
-		var versionTag = v2ray.core.ssr.updateCore();
-		if( versionTag ){
-			publish("uiCommand.restartV2RayCore");
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgOk("SSR Core（ ShadowsocksR-native ） 已更新到：" + versionTag,1500)
-		}
-		else {
-			winform.btnUpdateCore.disabledText = null;
-		} 	
-	}
-	elseif(sel=="vless"){
-		import v2ray.core.xray;
-		var versionTag = v2ray.core.xray.updateCore();
-		if( versionTag ){
-			publish("uiCommand.restartV2RayCore");
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgOk("已下载最新 Xray Core 版本：" + versionTag+ '\n代理内核已切换为：Xray Core',1500)
-		}
-		else {
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgErr("XRay Core 下载失败！");
-		} 	
-	}
-	elseif(sel=="naive"){
-		import v2ray.core.naive;
-		var versionTag = v2ray.core.naive.updateCore();
-		if( versionTag ){
-			publish("uiCommand.restartV2RayCore");
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgOk("NaÏveProxy Core 已更新到：" + versionTag,1500)
-		}
-		else {
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgErr("NaÏveProxy Core 下载失败！");
-		} 		
-	}	
-	else {
-		import v2ray.core;
-		var versionTag = v2ray.core.updateCore();
-		if( versionTag ){
-			publish("uiCommand.restartV2RayCore");
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgOk("已下载最新 Xray Core 版本：" + versionTag + '\n代理内核已切换为：Xray Core',1500)
-		}
-		else {
-			winform.btnUpdateCore.disabledText = null;
-			winform.msgErr("Xray Core 下载失败！");
-		} 
-	}
+	winform.btnUpdateCore.disabledText = null;
+	winform.msgInfo("当前核心为 sing-box，无需下载更新。");
 }
 
 winform.qrPicture.skin(
@@ -761,3 +681,6 @@ winform.qrPicture.oncommand = function(id,event){
 winform.show();
 win.loopMessage();
 return winform;
+
+
+

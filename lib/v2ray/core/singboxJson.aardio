@@ -1,0 +1,302 @@
+﻿// sing-box 閰嶇疆
+import web.json;
+import config;
+
+namespace v2ray.core.singboxJson;
+
+var _splitUserPass = function(id){
+	if(!#(id:"")){
+		return;
+	}
+	var user,password = ..string.match(id,"([^\:]+)\:(.+)");
+	if(user && password){
+		return user,password;
+	}
+	return id,"";
+}
+
+var _normalizeHostArray = function(host){
+	if(type(host)=="string"){
+		if(#host){
+			return {host}
+		}
+		return null;
+	}
+	if(..table.isArray(host) && #host){
+		return host;
+	}
+	return null;
+}
+
+var _buildTransport = function(outbound){
+	var network = outbound.network:"tcp";
+	if(network=="ws"){
+		var headers = {};
+		if(type(outbound.headers)=="table"){
+			headers = ..table.clone(outbound.headers);
+		}
+		if(#(outbound.host:"") && !headers.Host){
+			headers.Host = outbound.host;
+		}
+		return {
+			type = "ws";
+			path = outbound.path:"";
+			headers = ..table.count(headers) ? headers : null;
+		}
+	}
+	elseif(network=="http" || network=="h2"){
+		return {
+			type = "http";
+			path = outbound.path:"";
+			host = _normalizeHostArray(outbound.host);
+			method = outbound.httpMethod;
+			headers = type(outbound.headers)=="table" ? outbound.headers : null;
+		}
+	}
+	elseif(network=="grpc"){
+		return {
+			type = "grpc";
+			service_name = outbound.path;
+		}
+	}
+	elseif(network=="quic"){
+		return {
+			type = "quic";
+		}
+	}
+}
+
+var _buildTls = function(outbound){
+	var tlsType = outbound.tls:"";
+	if((!#tlsType) && outbound.protocol=="vless" && outbound.security=="reality"){
+		tlsType = "reality";
+	}
+	
+	if(!#tlsType){
+		return null;
+	}
+	
+	var tls = {
+		enabled = true;
+		server_name = outbound.sni : outbound.address;
+		insecure = !!outbound.allowInsecure;
+	}
+	
+	if(outbound.alpn){
+		if(type(outbound.alpn)=="string"){
+			tls.alpn = {outbound.alpn};
+		}
+		elseif(..table.isArray(outbound.alpn)){
+			tls.alpn = outbound.alpn;
+		}
+	}
+	
+	if(tlsType=="reality"){
+		tls.reality = {
+			enabled = true;
+			public_key = outbound.publicKey : outbound.pbk;
+			short_id = outbound.shortId : outbound.sid;
+		}
+		var fp = outbound.fingerprint : outbound.fp;
+		if(#(fp:"")){
+			tls.utls = {
+				enabled = true;
+				fingerprint = fp;
+			}
+		}
+	}
+	
+	return tls;
+}
+
+var _buildOutbound = function(outbound){
+	var ob = {
+		tag = "proxy";
+		server = outbound.address;
+		server_port = tonumber(outbound.port);
+	}
+	
+	var transport = _buildTransport(outbound);
+	var tls = _buildTls(outbound);
+	
+	if(outbound.protocol=="vless"){
+		ob.type = "vless";
+		ob.uuid = outbound.id;
+		ob.flow = outbound.flow;
+		ob.packet_encoding = "xudp";
+		ob.tls = tls;
+		ob.transport = transport;
+	}
+	elseif(outbound.protocol=="vmess"){
+		ob.type = "vmess";
+		ob.uuid = outbound.id;
+		ob.alter_id = tonumber(outbound.alterId) : 0;
+		ob.security = outbound.security : "auto";
+		ob.packet_encoding = "xudp";
+		ob.tls = tls;
+		ob.transport = transport;
+	}
+	elseif(outbound.protocol=="trojan" || outbound.protocol=="trojan-go"){
+		ob.type = "trojan";
+		ob.password = outbound.id;
+		ob.tls = tls ? tls : {
+			enabled = true;
+			server_name = outbound.sni : outbound.address;
+			insecure = !!outbound.allowInsecure;
+		};
+		ob.transport = transport;
+	}
+	elseif(outbound.protocol=="shadowsocks"){
+		ob.type = "shadowsocks";
+		ob.method = outbound.security;
+		ob.password = outbound.id;
+	}
+	elseif(outbound.protocol=="socks"){
+		ob.type = "socks";
+		var user,password = _splitUserPass(outbound.id);
+		if(#(user:"")){
+			ob.username = user;
+		}
+		if(#(password:"")){
+			ob.password = password;
+		}
+	}
+	elseif(outbound.protocol=="http" || outbound.protocol=="https"){
+		ob.type = "http";
+		var user,password = _splitUserPass(outbound.id);
+		if(#(user:"")){
+			ob.username = user;
+		}
+		if(#(password:"")){
+			ob.password = password;
+		}
+		if(outbound.protocol=="https"){
+			ob.tls = tls ? tls : {
+				enabled = true;
+				server_name = outbound.sni : outbound.address;
+				insecure = !!outbound.allowInsecure;
+			};
+		}
+	}
+	
+	if(!#(ob.type:"")){
+		return null,"sing-box unsupported protocol: " + (outbound.protocol:"");
+	}
+	
+	if(type(ob.tls)=="table" && !ob.tls.enabled){
+		ob.tls = null;
+	}
+	
+	return ob;
+}
+
+write = function(jsonPath,outbound,sockPort,httpPort){
+	if(!outbound){
+		return null,"invalid outbound config: outbound is null";
+	}
+	if(type(outbound.port)!=type.number){
+		outbound.port = tonumber(outbound.port);
+	}
+	if(!outbound.port){
+		return null,"invalid outbound config: missing port";
+	}
+	
+	var proxyOutbound,err = _buildOutbound(outbound);
+	if(!proxyOutbound){
+		return null,err;
+	}
+	
+	var cfg = {
+		log = {
+			level = "debug";
+		};
+		inbounds = {
+			{
+				type = "socks";
+				tag = "proxy";
+				listen = "127.0.0.1";
+				listen_port = tonumber(sockPort);
+			};
+			{
+				type = "http";
+				tag = "http_proxy";
+				listen = "127.0.0.1";
+				listen_port = tonumber(httpPort);
+			}
+		};
+		outbounds = {
+			proxyOutbound;
+			{
+				type = "direct";
+				tag = "direct";
+			};
+			{
+				type = "block";
+				tag = "block";
+			}
+		};
+		route = {
+			final = "proxy";
+			auto_detect_interface = true;
+		}
+	}
+	
+	var proxyMode = ..config.proxy.mode;
+	var tunCfg = ..config.proxy.tun : {};
+	var tunEnabled = (proxyMode=="tun") || !!tunCfg.enabled;
+	if(tunEnabled){
+		var tunRouteMode = tunCfg.routeMode : "rule";
+		if(tunRouteMode!="rule" && tunRouteMode!="global" && tunRouteMode!="direct"){
+			tunRouteMode = "rule";
+		}
+		
+		var tunInbound = {
+			type = "tun";
+			tag = "tun_proxy";
+			interface_name = tunCfg.name : "WinXray Tunnel";
+			mtu = tonumber(tunCfg.mtu) : 1500;
+			address = {
+				tunCfg.ipv4 : "172.19.0.1/30";
+				tunCfg.ipv6 : "fdfe:dcba:9876::1/126";
+			};
+			auto_route = true;
+			strict_route = true;
+			stack = "system";
+		};
+		..table.push(cfg.inbounds,tunInbound);
+		cfg.route.auto_detect_interface = false;
+		
+		if(tunRouteMode=="direct"){
+			cfg.route.final = "direct";
+			cfg.route.rules = ..table.array();
+		}
+		elseif(tunRouteMode=="global"){
+			cfg.route.final = "proxy";
+			cfg.route.rules = ..table.array();
+		}
+		else {
+			cfg.route.final = "proxy";
+			cfg.route.rules = {
+				{
+					inbound = {"tun_proxy"};
+					network = {"udp";"tcp"};
+					port = {53};
+					outbound = "proxy";
+				};
+				{
+					inbound = {"tun_proxy"};
+					ip_is_private = true;
+					outbound = "direct";
+				};
+				{
+					inbound = {"tun_proxy"};
+					domain_suffix = {"local";"lan";"localhost";"cn"};
+					outbound = "direct";
+				}
+			};
+		}
+	}
+	
+	..string.save(jsonPath,..web.json.stringify(cfg));
+	return jsonPath;
+}

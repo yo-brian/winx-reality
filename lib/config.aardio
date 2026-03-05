@@ -6,9 +6,8 @@ namespace config {
 	__appName = "winXray"; 
 	__loadDefaultOutbounds = function(){
 		import v2ray.outbounds;
-		var serverData =  ..string.load("/xray-core/winXray-default-servers.json") 
-			: ..string.load("/v2ray-core/winXray-default-servers.json") 
-			: $"/v2ray-core/winXray-default-servers.json"
+		var serverData =  ..string.load("/sing-box/winXray-default-servers.json")
+			: "[]"
 		
 		proxy.outbounds = ..v2ray.outbounds.importFromString(..string.removeBom(serverData));
 		..publish("outbounds.updateConfigJson",)
@@ -20,6 +19,9 @@ namespace config {
 }
 
 if(!config.proxy.mode) config.proxy.mode = "pac";
+if(config.proxy.mode=="tun"){
+	config.proxy.mode = "pac";
+}
 if(!config.proxy.pacPort) config.proxy.pacPort = 0;
 if(config.proxy.useHttpGlobal===null){
 	config.proxy.useHttpGlobal = true;
@@ -40,10 +42,17 @@ if(config.proxy.autoRefreshSubscription === null){
 	config.proxy.autoRefreshSubscription = true;
 }
 
+if(config.proxy.singBoxMirrorPrefix===null){
+	config.proxy.singBoxMirrorPrefix = "";
+}
+
 if(type(config.proxy.tun)!="table"){
 	config.proxy.tun = {};
 }
 if(config.proxy.tun.enabled===null){
+	config.proxy.tun.enabled = false;
+}
+if(config.proxy.mode!="tun"){
 	config.proxy.tun.enabled = false;
 }
 if(!config.proxy.tun.name){

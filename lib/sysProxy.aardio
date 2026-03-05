@@ -7,6 +7,9 @@ import v2ray.pacServer;
 namespace sysProxy;
 
 switchMode = function(mode){  
+	if(mode=="tun"){
+		mode = "pac";
+	}
 	var prevMode = ..config.proxy.mode;
 	..config.proxy.mode = mode : "direct";
 	if(type(..config.proxy.tun)!="table"){
@@ -44,7 +47,7 @@ switchMode = function(mode){
 	} 
 	..publish("sysProxy.modeChanged",mode)
 	
-	if(mode=="tun" || prevMode=="tun"){
+	if(prevMode=="tun"){
 		..publish("uiCommand.restartV2RayCore");
 	}
 } 

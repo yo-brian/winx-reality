@@ -471,6 +471,44 @@ var removeOutbounds = function(selectedItems){
 }
 
 import v2ray.outbounds;
+var importOutboundsFromText = function(str,showTip){
+	if(!str){
+		return false;
+	}
+	
+	str = ..string.trim(str,'"\'\t\r\n ');
+	if(!str){
+		return false;
+	}
+	
+	if( ..string.startWith(str,"http://") 
+		|| ..string.startWith(str,"https://") 
+		|| ..string.match(str,"^\s*/\N+\s*$") ){
+		if(..string.match(str,"^\s*/\N+\s*$")){
+			str = "https://github.com" + str;
+		}
+		
+		v2ray.outbounds.updateSubscription({[str]=true});
+		return true;
+	}
+
+	var outbounds = v2ray.outbounds.importFromString(str);
+	if(#outbounds){
+		..table.append(config.proxy.outbounds,outbounds); 
+		publish("uiCommand.restartV2RayCore");
+		publish("outbounds.updateConfigJson");
+		if(showTip){
+			frmXray.msgOk("已成功导入" + #outbounds + "个服务器",1200); 
+		}
+		return true; 
+	}
+	
+	return false;
+}
+
+subscribe("uiCommand.importFromText",function(str,showTip){
+	importOutboundsFromText(str,showTip);
+})
 frmXray.listview.onnotify = function(id,code,ptr){
 	select(code) {
 		case 0xFFFFFFF4/*_NM_CUSTOMDRAW*/ {
@@ -883,6 +921,9 @@ iml.add('GIF\56\57a \0\15\0\x80\0\0\x80\x80\x80\xff\0\xff\33\xf9\4\0\0\0\0\0\44\
 frmXray.listview.setColumnImageList(iml);
 
 subscribe("uiCommand.restartV2RayCore",function(){ 
+	var prevIndex = frmXray.listview.activeOutboundIndex;
+	var prevAddress = frmXray.listview.activeOutboundAddress;
+	
 	config.proxy.outbounds.fields = {"protocol";"address";"port";"security";"network";"ps";}
 	
 	var outbounds = config.proxy.outbounds;
@@ -893,7 +934,9 @@ subscribe("uiCommand.restartV2RayCore",function(){
 	}
 	frmXray.listview.setTable(outbounds);	 
 	
-	if(!v2ray.core.lastDownloadingCoreFailed) frmXray.btnTcping.oncommand();
+	if(!v2ray.core.lastDownloadingCoreFailed && prevIndex && prevAddress){
+		activeOutbound(prevIndex,prevAddress,config.proxy.test);
+	}
 } )
 
 import process;
@@ -986,6 +1029,10 @@ import v2ray.outbounds;
 frmXray.btnImportServerFromClipBd.skin(style.plainButton)
 frmXray.btnImportServerFromClipBd.oncommand = function(id,event){
 	var str = ..win.clip.read();
+	if(importOutboundsFromText(str,true)){
+		return;
+	}
+	
 	if(str){  
 		str = ..string.trim(str,'"\'\t\r\n '); 
 		if( ..string.startWith(str,"http://") 
